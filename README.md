@@ -22,3 +22,4 @@ sure you do `cmake -Dtest=ON ..` first.
 ## TODO
 Implement the Forward-Backward algorithm - the more efficient version.
 Then do the Viterbi algorithm, or maybe Dijkstra's on the -log of edges.
+
