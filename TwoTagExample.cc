@@ -1,4 +1,5 @@
 #include <cassert>
+#include <ctime>
 #include <iostream>
 #include <map>
 #include <vector>
@@ -51,7 +52,7 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pBGivenY.repr(), initVal);
 }
 
-void ComputeDataWithBruteForce(map<string, double> *data) {
+void BruteForceCompute(map<string, double> *data) {
   // Enumerate all possible tag sequences.
   vector<string> tagSequences{
     X+X+X, X+X+Y, X+Y+X, X+Y+Y,
@@ -86,12 +87,62 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
   }
 }
 
+struct Node {
+  string name;
+  vector<pair<Node, Edge> > parents;  // Incoming edges.
+  vector<pair<Node, Edge> > children;  // Outgoing edges.
+  Node(string name) {
+    this->name = name;
+  }
+  string repr() {
+    return name;
+  }
+};
+
+struct Edge {
+  Notation notation;
+  Edge(Notation n) {
+    this->notation = n;
+  }
+  string repr() {
+    return notation.repr();
+  }
+}
+
+void PrepareTrellis(vector<Node> *graph) {
+
+}
+
+void ForwardBackwardCompute(const vector<Node> &nodes, const Node &startNode,
+    const Node &endNode, map<string, double> *data) {
+  map<string, double> alpha;  // Sum of all paths from start state to this node.
+  map<string, double> beta;  // Sum of all paths from this node to final state.
+
+  alpha[startNode.repr()] = 1;
+
+  // Forward pass.
+  for (int i = 0; i < nodes.size(); ++i) {
+    if (nodes[i] != startNode) {
+      double sum = 0;
+      for (Node parent : nodes[i].parents) {
+        sum += alpha[parent.first.repr()] * data->at(parent.second.repr());
+      }
+      alpha[nodes[i].repr()] = sum;
+    }
+  }
+
+  // Backward pass. TODO.
+
+  // Counting pass.
+
+
+}
+
 int main() {
-  map<string, double> data;
+  map<string, double> data;  // Storage for probabilities and counts.
   PrepareInitialData(&data);
-  ComputeDataWithBruteForce(&data);
+  BruteForceCompute(&data);
   
-  // Goal:
   cout << "--Results--\n";
   cout << cXA << ": " << data[cXA.repr()] << endl;
   cout << cXB << ": " << data[cXB.repr()] << endl;
