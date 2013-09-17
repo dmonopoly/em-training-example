@@ -89,43 +89,86 @@ void BruteForceCompute(map<string, double> *data) {
 
 struct Node {
   string name;
-  vector<pair<Node, Edge> > parents;  // Incoming edges.
-  vector<pair<Node, Edge> > children;  // Outgoing edges.
+  vector<Edge> parent_edges;
+  vector<Edge> child_edges;
   Node(string name) {
     this->name = name;
   }
   string repr() {
-    return name;
+    return this->name;
+  }
+  void set_name(const string &other) {
+    this->name = other;
   }
 };
 
 struct Edge {
   Notation notation;
-  Edge(Notation n) {
+  Node src, dest;
+  Edge(const Notation &n, const Node &src, const Node &dest) {
     this->notation = n;
+    this->src = src;
+    this->dest = dest;
   }
   string repr() {
     return notation.repr();
   }
 }
 
-void PrepareTrellis(vector<Node> *graph) {
+void LinkNodeAndEdge(Node *node, Edge *edge) {
 
 }
 
-void ForwardBackwardCompute(const vector<Node> &nodes, const Node &startNode,
-    const Node &endNode, map<string, double> *data) {
+// Warning: Creates data on heap. Call DestroyTrellis after done.
+// Post: 'nodes' points to a vector where [0] is the start node, back() is the
+// end. 'edges' points to a vector of corresponding edges.
+void BuildTrellis(vector<Node> *nodes, Vector<Edge> *edges) {
+  Node start_node = new Node("start");
+  nodes->push_back(start_node);
+  Node xa1first = new Node("xa1first");
+  nodes->push_back(xa1first);
+  Node xa2first = new Node("xa2first");
+  nodes->push_back(xa2first);
+  Node xb1second = new Node("xb1second");
+  nodes->push_back(xb1second);
+  Node xb2second = new Node("xb2second");
+  nodes->push_back(xb2second);
+  Node xa1third = new Node("xa1third");
+  nodes->push_back(xa1third);
+  Node xa2third = new Node("xa2third");
+  nodes->push_back(xa2third);
+  Node ya1first = new Node("ya1first");
+  nodes->push_back(ya1first);
+  Node ya2first = new Node("ya2first");
+  nodes->push_back(ya2first);
+  Node yb1second = new Node("yb1second");
+  nodes->push_back(yb1second);
+  Node yb2second = new Node("yb2second");
+  nodes->push_back(yb2second);
+  Node ya1third = new Node("ya1third");
+  nodes->push_back(ya1third);
+  Node ya2third = new Node("ya2third");
+  nodes->push_back(ya2third);
+  Node end_node = new Node("end");
+  nodes->push_back(end_node);
+
+  // TODONOW
+}
+
+void ForwardBackwardCompute(const vector<Node> &nodes, const Node &start_node,
+                            const Node &end_node, const vector<Edge> &edges,
+                            map<string, double> *data) {
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
 
-  alpha[startNode.repr()] = 1;
+  alpha[start_node.repr()] = 1;
 
   // Forward pass.
   for (int i = 0; i < nodes.size(); ++i) {
-    if (nodes[i] != startNode) {
+    if (nodes[i] != start_node) {
       double sum = 0;
-      for (Node parent : nodes[i].parents) {
-        sum += alpha[parent.first.repr()] * data->at(parent.second.repr());
+      for (Edge e : nodes[i].parent_edges) {
+        sum += alpha[e.src.repr()] * data->at(e.repr());
       }
       alpha[nodes[i].repr()] = sum;
     }
@@ -134,18 +177,52 @@ void ForwardBackwardCompute(const vector<Node> &nodes, const Node &startNode,
   // Backward pass. TODO.
 
   // Counting pass.
+  for (int i = 0; i < edges.size(); ++i) {
 
+  }
 
 }
 
-int main() {
+void RunBruteForceEM() {
   map<string, double> data;  // Storage for probabilities and counts.
   PrepareInitialData(&data);
+
+  clock_t t;
+  t = clock();
   BruteForceCompute(&data);
+  t = clock() - t;
   
   cout << "--Results--\n";
   cout << cXA << ": " << data[cXA.repr()] << endl;
   cout << cXB << ": " << data[cXB.repr()] << endl;
   cout << pABA << ": " << data[pABA.repr()] << endl;
+  printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
+}
+
+void RunEfficientEM() {
+  map<string, double> data;  // Storage for probabilities and counts.
+  vector<Node> nodes;
+  vector<Edge> edges;
+
+  PrepareInitialData(&data);
+  BuildTrellis(&nodes, &edges);
+
+  clock_t t;
+  t = clock();
+  ForwardBackwardCompute(nodes, nodes[0], nodes.back(), edges, &data);
+  t = clock() - t;
+  
+  cout << "--Results--\n";
+  cout << cXA << ": " << data[cXA.repr()] << endl;
+  cout << cXB << ": " << data[cXB.repr()] << endl;
+  cout << pABA << ": " << data[pABA.repr()] << endl;
+  printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
+
+  DestroyTrellis(&nodes, &edges);
+}
+
+int main() {
+  RunBruteForceEM();
+  RunEfficientEM();
   return 0;
 }
