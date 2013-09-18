@@ -68,8 +68,9 @@ void BruteForceCompute(map<string, double> *data) {
       data->emplace(pTW.repr(), normalizedProb);
       // Get counts.
       (*data)[cXA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
-          cXA); (*data)[cXB.repr()] +=
-        Calculator::NormProbFactor(normalizedProb, pTW, cXB);
+                                                        cXA);
+      (*data)[cXB.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
+                                                        cXB);
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
@@ -89,10 +90,12 @@ void BruteForceCompute(map<string, double> *data) {
 
 struct Node {
   string name;
+  int index;  // Topological ordering index.
   vector<Edge> parent_edges;
   vector<Edge> child_edges;
-  Node(string name) {
+  Node(string name, int index) {
     this->name = name;
+    this->index = index;
   }
   string repr() {
     return this->name;
@@ -121,66 +124,83 @@ void LinkNodeAndEdge(Node *node, Edge *edge) {
 
 // Warning: Creates data on heap. Call DestroyTrellis after done.
 // Post: 'nodes' points to a vector where [0] is the start node, back() is the
-// end. 'edges' points to a vector of corresponding edges.
+// end, and the vector lists the nodes in topological order. 'edges' points to a
+// vector of corresponding edges.
 void BuildTrellis(vector<Node> *nodes, Vector<Edge> *edges) {
-  Node start_node = new Node("start");
+  Node start_node = new Node("start", 0);
   nodes->push_back(start_node);
-  Node xa1first = new Node("xa1first");
+  Node xa1first = new Node("xa1first", 1);
   nodes->push_back(xa1first);
-  Node xa2first = new Node("xa2first");
-  nodes->push_back(xa2first);
-  Node xb1second = new Node("xb1second");
-  nodes->push_back(xb1second);
-  Node xb2second = new Node("xb2second");
-  nodes->push_back(xb2second);
-  Node xa1third = new Node("xa1third");
-  nodes->push_back(xa1third);
-  Node xa2third = new Node("xa2third");
-  nodes->push_back(xa2third);
-  Node ya1first = new Node("ya1first");
+  Node ya1first = new Node("ya1first", 1);
   nodes->push_back(ya1first);
-  Node ya2first = new Node("ya2first");
+  Node xa2first = new Node("xa2first", 2);
+  nodes->push_back(xa2first);
+  Node ya2first = new Node("ya2first", 2);
   nodes->push_back(ya2first);
-  Node yb1second = new Node("yb1second");
+  Node xb1second = new Node("xb1second", 3);
+  nodes->push_back(xb1second);
+  Node yb1second = new Node("yb1second", 3);
   nodes->push_back(yb1second);
-  Node yb2second = new Node("yb2second");
+  Node xb2second = new Node("xb2second", 4);
+  nodes->push_back(xb2second);
+  Node yb2second = new Node("yb2second", 4);
   nodes->push_back(yb2second);
-  Node ya1third = new Node("ya1third");
+  Node xa1third = new Node("xa1third", 5);
+  nodes->push_back(xa1third);
+  Node ya1third = new Node("ya1third", 5);
   nodes->push_back(ya1third);
-  Node ya2third = new Node("ya2third");
+  Node xa2third = new Node("xa2third", 6);
+  nodes->push_back(xa2third);
+  Node ya2third = new Node("ya2third", 6);
   nodes->push_back(ya2third);
-  Node end_node = new Node("end");
+  Node end_node = new Node("end", 7);
   nodes->push_back(end_node);
 
   // TODONOW
 }
 
-void ForwardBackwardCompute(const vector<Node> &nodes, const Node &start_node,
-                            const Node &end_node, const vector<Edge> &edges,
+void ForwardBackwardCompute(const vector<Node> &nodes, 
+                            const vector<Edge> &select_edges,
                             map<string, double> *data) {
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
 
   alpha[start_node.repr()] = 1;
 
-  // Forward pass.
-  for (int i = 0; i < nodes.size(); ++i) {
-    if (nodes[i] != start_node) {
-      double sum = 0;
-      for (Edge e : nodes[i].parent_edges) {
-        sum += alpha[e.src.repr()] * data->at(e.repr());
-      }
-      alpha[nodes[i].repr()] = sum;
+  // Forward pass. Assumes start node is at i = 0.
+  for (int i = 1; i < nodes.size(); ++i) {
+    double sum = 0;
+    for (Edge e : nodes[i].parent_edges) {
+      sum += alpha[e.src.repr()] * data->at(e.repr());
     }
+    alpha[nodes[i].repr()] = sum;
   }
 
   // Backward pass. TODO.
 
   // Counting pass.
-  for (int i = 0; i < edges.size(); ++i) {
-
+  (*data)[count_key] = 0;
+  for (int i = 0; i < select_edges.size(); ++i) {
+    Edge e = select_edges[i];
+    string count_key = NotationHelper::ConvertPredicate("C", e.repr());
+    cout << "Getting count key " << count_key << " from " << e.repr() << endl;
+    (*data)[count_key] += (alpha[e.src.repr()] * data->at(e.repr())
+                           * beta[e.dest.repr()]) / alpha[nodes.back().repr()];
   }
 
+  // Update the unknown probabilities that we want to find. Use them in the
+  // next iteration.
+  (*data)[pAGivenX.repr()] = (*data)[cXA.repr()]/( (*data)[cXA.repr()] +
+      (*data)[cXB.repr()] );
+  (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
+      (*data)[cXA.repr()] );
+
+  // The ultimate value we want to maximize. This should increase with each
+  // iteration.
+  Calculator::UpdateProbOfObsDataSeq(pABA, data, tagSequences);
+  cout << cXA << ": " << (*data)[cXA.repr()] << endl;
+  cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+  cout << pABA << ": " << (*data)[pABA.repr()] << endl;
 }
 
 void RunBruteForceEM() {
@@ -202,14 +222,14 @@ void RunBruteForceEM() {
 void RunEfficientEM() {
   map<string, double> data;  // Storage for probabilities and counts.
   vector<Node> nodes;
-  vector<Edge> edges;
+  vector<Edge> edges_to_update;
 
   PrepareInitialData(&data);
-  BuildTrellis(&nodes, &edges);
+  BuildTrellis(&nodes, &edges_to_update);
 
   clock_t t;
   t = clock();
-  ForwardBackwardCompute(nodes, nodes[0], nodes.back(), edges, &data);
+  ForwardBackwardCompute(nodes, edges_to_update, &data);
   t = clock() - t;
   
   cout << "--Results--\n";

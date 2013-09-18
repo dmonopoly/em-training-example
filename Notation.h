@@ -27,6 +27,9 @@ class Notation {
   void set_second(const vector<string>& other) {
     this->second = other;
   }
+  void set_predicate(const string new_pred) {
+    this->predicate = new_pred;
+  }
   string repr() const;
 };
 ostream& operator<<(ostream& out, const Notation& n);

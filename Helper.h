@@ -14,7 +14,7 @@ using namespace std;
 namespace NotationHelper {
   vector<string> Individualize(const string &s);
   string SurroundWithParentheses(const string &predicate, const string &target);
-}
+  string ConvertPredicate(const string &new_pred, const Notation &n);
 
 // Notation Calculator methods that use the map of calculations.
 namespace Calculator {
@@ -23,6 +23,7 @@ namespace Calculator {
   double ComputeNormalizedProbability(const Notation &n, const map<string,
       double> &data, const int &tag_list_size, const int &observed_data_size);
 
+  // Part of brute force method:
   // Pre: pn's 'first' and 'second' values have same length. pn is like
   // P(ABA|XYX), so pn.first is ABA and pn.second is XYX (basically, probability
   // of observed data | tags). cn is like C(X, A), so cn.first has size 2, and

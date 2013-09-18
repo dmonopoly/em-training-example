@@ -16,6 +16,11 @@ namespace NotationHelper {
   string SurroundWithParentheses(const string &predicate, const string &target) {
     return predicate + "(" + target + ")";
   }
+
+  string ConvertPredicate(const string &new_pred, const Notation &n) {
+    return n.repr().replace(n.repr().begin(), n.repr()+n.predicate.size(),
+        new_pred);
+  }
 }
 
 namespace Calculator {
