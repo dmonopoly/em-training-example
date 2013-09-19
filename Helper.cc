@@ -26,7 +26,8 @@ namespace NotationHelper {
     else if (n.repr().find("B") != string::npos && n.repr().find("X"))
       result = "cXB";
     else if (n.repr().find("B") != string::npos && n.repr().find("Y"))
-      retult = "cYB";
+      result = "cYB";
+    return result;
   }
 }
 

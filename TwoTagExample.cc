@@ -6,6 +6,8 @@
 
 #include "Helper.h"
 #include "Notation.h"
+#include "Node.h"
+#include "Edge.h"
 
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 5
@@ -34,8 +36,6 @@ Notation pBGivenX("P", {B}, {X});
 Notation pBGivenY("P", {B}, {Y});
 Notation cXA("C", {X, A}, {});  // "count of x intersected with a"
 Notation cXB("C", {X, B}, {});
-
-vector<Edge> global_list_of_edges; // Used for safely deleting edges at the end.
 
 void PrepareInitialData(map<string, double> *data) {
   // Given data.
@@ -90,125 +90,122 @@ void BruteForceCompute(map<string, double> *data) {
   }
 }
 
-struct Node {
-  string name;
-  int index;  // Topological ordering index.
-  vector<Edge> parent_edges;
-  vector<Edge> child_edges;
-  Node(string name, int index) {
-    this->name = name;
-    this->index = index;
-  }
-  string repr() {
-    return this->name;
-  }
-  void set_name(const string &other) {
-    this->name = other;
-  }
-};
-
 void LinkNodeAndEdge(Node *src_node, const Edge &edge, Node *dest_node) {
   // Sets the nodes to be connected to the edge.
-  src_node->child_edges.push_back(edge);
-  dest_node->parent_edges.push_back(edge);
-}
-
-struct Edge {
-  Notation notation;
-  Node *src, *dest;
-  Edge(const Notation &n, Node *src, Node *dest) {
-    this->notation = n;
-    this->src = src;
-    this->dest = dest;
-    LinkNodeAndEdge(src, *this, dest);
-    global_list_of_edges.push_back(*this);
-  }
-  string repr() {
-    return notation.repr();
-  }
+  src_node->child_edges.push_back(&edge);
+  dest_node->parent_edges.push_back(&edge);
 }
 
 // Warning: Creates data on heap. Call DestroyTrellis after done.
 // Post: 'nodes' points to a vector where [0] is the start node, back() is the
 // end, and the vector lists the nodes in topological order. 'edges' points to a
 // vector of corresponding edges.
-void BuildTrellis(vector<Node> *nodes, vector<Edge> *select_edges) {
-  Node start_node = new Node("start", 0);
+void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Edge *> *all_edges) {
+  Node *start_node = new Node("start", 0);
   nodes->push_back(start_node);
-  Node xa1first = new Node("xa1first", 1);
+  Node *xa1first = new Node("xa1first", 1);
   nodes->push_back(xa1first);
-  Node ya1first = new Node("ya1first", 1);
+  Node *ya1first = new Node("ya1first", 1);
   nodes->push_back(ya1first);
-  Node xa2first = new Node("xa2first", 2);
+  Node *xa2first = new Node("xa2first", 2);
   nodes->push_back(xa2first);
-  Node ya2first = new Node("ya2first", 2);
+  Node *ya2first = new Node("ya2first", 2);
   nodes->push_back(ya2first);
-  Node xb1second = new Node("xb1second", 3);
+  Node *xb1second = new Node("xb1second", 3);
   nodes->push_back(xb1second);
-  Node yb1second = new Node("yb1second", 3);
+  Node *yb1second = new Node("yb1second", 3);
   nodes->push_back(yb1second);
-  Node xb2second = new Node("xb2second", 4);
+  Node *xb2second = new Node("xb2second", 4);
   nodes->push_back(xb2second);
-  Node yb2second = new Node("yb2second", 4);
+  Node *yb2second = new Node("yb2second", 4);
   nodes->push_back(yb2second);
-  Node xa1third = new Node("xa1third", 5);
+  Node *xa1third = new Node("xa1third", 5);
   nodes->push_back(xa1third);
-  Node ya1third = new Node("ya1third", 5);
+  Node *ya1third = new Node("ya1third", 5);
   nodes->push_back(ya1third);
-  Node xa2third = new Node("xa2third", 6);
+  Node *xa2third = new Node("xa2third", 6);
   nodes->push_back(xa2third);
-  Node ya2third = new Node("ya2third", 6);
+  Node *ya2third = new Node("ya2third", 6);
   nodes->push_back(ya2third);
-  Node end_node = new Node("end", 7);
+  Node *end_node = new Node("end", 7);
   nodes->push_back(end_node);
 
   // From the start point.
-  Edge pX_edge = new Edge(pX, &start_node, &xa1first);
-  Edge pY_edge = new Edge(pY, &start_node, &ya1first);
+  Edge *pX_edge = new Edge(pX, start_node, xa1first);
+  all_edges->push_back(pX_edge);
+  Edge *pY_edge = new Edge(pY, start_node, ya1first);
+  all_edges->push_back(pY_edge);
 
   // The diagonals.
-  Edge pYGivenX_edge = new Edge(pYGivenX, &xa2first, &yb1second);
-  Edge pXGivenY_edge = new Edge(pXGivenY, &ya2first, &xb1second);
-  Edge pYGivenX_edge2 = new Edge(pYGivenX, &xb2second, &ya1third);
-  Edge pXGivenY_edge2 = new Edge(pXGivenY, &yb2second, &xa1third);
+  Edge *pYGivenX_edge = new Edge(pYGivenX, xa2first, yb1second);
+  all_edges->push_back(pYGivenX_edge);
+  Edge *pXGivenY_edge = new Edge(pXGivenY, ya2first, xb1second);
+  all_edges->push_back(pXGivenY_edge);
+  Edge *pYGivenX_edge2 = new Edge(pYGivenX, xb2second, ya1third);
+  all_edges->push_back(pYGivenX_edge2);
+  Edge *pXGivenY_edge2 = new Edge(pXGivenY, yb2second, xa1third);
+  all_edges->push_back(pXGivenY_edge2);
 
   // Across the top.
-  Edge pAGivenX_edge = new Edge(pAGivenX, &xa1first, &xa2first);
-  Edge pXGivenX_edge = new Edge(pXGivenX, &xa2first, &xb1second);
-  Edge pBGivenX_edge = new Edge(pBGivenX, &xb1second, &xb2second);
-  Edge pXGivenX_edge2 = new Edge(pXGivenX, &xb2second, &xa1third);
-  Edge pAGivenX_edge2 = new Edge(pAGivenX, &xa1third, &xa2third);
+  Edge *pAGivenX_edge = new Edge(pAGivenX, xa1first, xa2first);
+  all_edges->push_back(pAGivenX_edge);
+  Edge *pXGivenX_edge = new Edge(pXGivenX, xa2first, xb1second);
+  all_edges->push_back(pXGivenX_edge);
+  Edge *pBGivenX_edge = new Edge(pBGivenX, xb1second, xb2second);
+  all_edges->push_back(pBGivenX_edge);
+  Edge *pXGivenX_edge2 = new Edge(pXGivenX, xb2second, xa1third);
+  all_edges->push_back(pXGivenX_edge2);
+  Edge *pAGivenX_edge2 = new Edge(pAGivenX, xa1third, xa2third);
+  all_edges->push_back(pAGivenX_edge2);
 
   // Across the bottom.
-  Edge pAGivenY_edge = new Edge(pAGivenY, &ya1first, &ya2first);
-  Edge pYGivenY_edge = new Edge(pYGivenY, &ya2first, &yb1second);
-  Edge pBGivenY_edge = new Edge(pBGivenY, &yb1second, &yb2second);
-  Edge pYGivenY_edge2 = new Edge(pYGivenY, &yb2second, &ya1third);
-  Edge pAGivenY_edge2 = new Edge(pAGivenY, &ya1third, &ya2third);
+  Edge *pAGivenY_edge = new Edge(pAGivenY, ya1first, ya2first);
+  all_edges->push_back(pAGivenY_edge);
+  Edge *pYGivenY_edge = new Edge(pYGivenY, ya2first, yb1second);
+  all_edges->push_back(pYGivenY_edge);
+  Edge *pBGivenY_edge = new Edge(pBGivenY, yb1second, yb2second);
+  all_edges->push_back(pBGivenY_edge);
+  Edge *pYGivenY_edge2 = new Edge(pYGivenY, yb2second, ya1third);
+  all_edges->push_back(pYGivenY_edge2);
+  Edge *pAGivenY_edge2 = new Edge(pAGivenY, ya1third, ya2third);
+  all_edges->push_back(pAGivenY_edge2);
 
   // To the end point.
-  Edge x_last_edge = new Edge(p1, &xa2third, &end_node);
-  Edge y_last_edge = new Edge(p1, &ya2third, &end_node);
+  Edge *x_last_edge = new Edge(p1, xa2third, end_node);
+  all_edges->push_back(x_last_edge);
+  Edge *y_last_edge = new Edge(p1, ya2third, end_node);
+  all_edges->push_back(y_last_edge);
 
-  select_edges.push_back(pAGivenX_edge);
-  select_edges.push_back(pAGivenY_edge);
-  select_edges.push_back(pBGivenX_edge);
-  select_edges.push_back(pBGivenY_edge);
+  select_edges->push_back(pAGivenX_edge);
+  select_edges->push_back(pAGivenY_edge);
+  select_edges->push_back(pBGivenX_edge);
+  select_edges->push_back(pBGivenY_edge);
 }
 
-void ForwardBackwardCompute(const vector<Node> &nodes, 
-                            const vector<Edge> &select_edges,
+void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> all_edges) {
+  // Deletes nodes and edges.
+  for (Node *n : *nodes) {
+    delete n;
+  }
+  for (Edge *e : all_edges) {
+    delete e;
+  }
+}
+
+void ForwardBackwardCompute(const vector<Node *> &nodes, 
+                            const vector<Edge *> &select_edges,
                             map<string, double> *data) {
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
 
-  alpha[start_node.repr()] = 1;
+  // Set start node alpha value to 1.
+  alpha[nodes->at(0)->repr()] = 1;
 
   // Forward pass. Assumes start node is at i = 0.
   for (int i = 1; i < nodes.size(); ++i) {
     double sum = 0;
-    for (Edge e : nodes[i].parent_edges) {
-      sum += alpha[e->src.repr()] * data->at(e.repr());
+    for (Edge *e : nodes[i]->parent_edges) {
+      sum += alpha[e->src.repr()] * data->at(e->repr());
     }
     alpha[nodes[i].repr()] = sum;
   }
@@ -260,11 +257,12 @@ void RunBruteForceEM() {
 
 void RunEfficientEM() {
   map<string, double> data;  // Storage for probabilities and counts.
-  vector<Node> nodes;
-  vector<Edge> edges_to_update;
+  vector<Node *> nodes;
+  vector<Edge *> edges_to_update;
+  vector<Edge *> all_edges; // for deletion later
 
   PrepareInitialData(&data);
-  BuildTrellis(&nodes, &edges_to_update);
+  BuildTrellis(&nodes, &edges_to_update, &all_edges);
 
   clock_t t;
   t = clock();
@@ -277,7 +275,7 @@ void RunEfficientEM() {
   cout << pABA << ": " << data[pABA.repr()] << endl;
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
 
-  DestroyTrellis(&nodes, &edges);
+  DestroyTrellis(&nodes, &all_edges);
 }
 
 int main() {

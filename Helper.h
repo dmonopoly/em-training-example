@@ -15,6 +15,7 @@ namespace NotationHelper {
   vector<string> Individualize(const string &s);
   string SurroundWithParentheses(const string &predicate, const string &target);
   string ConvertPredicate(const Notation &n);
+}
 
 // Notation Calculator methods that use the map of calculations.
 namespace Calculator {
