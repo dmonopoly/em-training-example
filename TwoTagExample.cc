@@ -33,6 +33,9 @@ Notation pBGivenX("P", {B}, {X});
 Notation pBGivenY("P", {B}, {Y});
 Notation cXA("C", {X, A}, {});  // "count of x intersected with a"
 Notation cXB("C", {X, B}, {});
+Notation cYA("C", {Y, A}, {});
+Notation cYB("C", {Y, B}, {});
+
 
 void PrepareInitialData(map<string, double> *data) {
   // Given data.
@@ -56,6 +59,13 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
   vector<string> tagSequences{
     X+X+X, X+X+Y, X+Y+X, X+Y+Y,
     Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
+  // Initially
+  cout << "Initially: \n";
+  cout << cXA << ": " << (*data)[cXA.repr()] << endl;
+  cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+  cout << cYA << ": " << (*data)[cYA.repr()] << endl;
+  cout << cYB << ": " << (*data)[cYB.repr()] << endl;
+  cout << pABA << ": " << (*data)[pABA.repr()] << endl;
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
     // Get norm P(t,w) and counts.
@@ -67,8 +77,13 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
       data->emplace(pTW.repr(), normalizedProb);
       // Get counts.
       (*data)[cXA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
-          cXA); (*data)[cXB.repr()] +=
+          cXA);
+      (*data)[cXB.repr()] +=
         Calculator::NormProbFactor(normalizedProb, pTW, cXB);
+      (*data)[cYA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
+          cYA);
+      (*data)[cYB.repr()] +=
+        Calculator::NormProbFactor(normalizedProb, pTW, cYB);
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
@@ -76,12 +91,18 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
         (*data)[cXB.repr()] );
     (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
         (*data)[cXA.repr()] );
+    (*data)[pAGivenY.repr()] = (*data)[cYA.repr()]/( (*data)[cYA.repr()] +
+        (*data)[cYB.repr()] );
+    (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
+        (*data)[cYA.repr()] );
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
     Calculator::UpdateProbOfObsDataSeq(pABA, data, tagSequences);
     cout << cXA << ": " << (*data)[cXA.repr()] << endl;
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+    cout << cYA << ": " << (*data)[cYA.repr()] << endl;
+    cout << cYB << ": " << (*data)[cYB.repr()] << endl;
     cout << pABA << ": " << (*data)[pABA.repr()] << endl;
   }
 }
@@ -95,6 +116,8 @@ int main() {
   cout << "--Results--\n";
   cout << cXA << ": " << data[cXA.repr()] << endl;
   cout << cXB << ": " << data[cXB.repr()] << endl;
+  cout << cYA << ": " << data[cYA.repr()] << endl;
+  cout << cYB << ": " << data[cYB.repr()] << endl;
   cout << pABA << ": " << data[pABA.repr()] << endl;
   return 0;
 }

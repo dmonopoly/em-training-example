@@ -71,13 +71,16 @@ namespace Calculator {
       double probOfObservedGivenTagSeq = 1;
       assert(tagSeq.size() == observedNotation.first.size() && "Tag sequence "
           "and observed data sequence are not the same size.");
+      cout << "For tag seq: " << tagSeq << endl;
       for (int i = 0; i < tagSeq.size(); ++i) {
         string currTag = string(1, tagSeq[i]);
         string tagKey = NotationHelper::SurroundWithParentheses("P", currTag);
+        cout << "value for " << tagKey << ": " << data->at(tagKey) << endl;
         probOfTagSeq *= data->at(tagKey);
 
         string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
             observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
+        cout << "value for " << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
         probOfObservedGivenTagSeq *= data->at(obsGivenTagKey);
       }
       sum += probOfTagSeq*probOfObservedGivenTagSeq;
