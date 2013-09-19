@@ -35,6 +35,8 @@ Notation pBGivenY("P", {B}, {Y});
 Notation cXA("C", {X, A}, {});  // "count of x intersected with a"
 Notation cXB("C", {X, B}, {});
 
+vector<Edge> global_list_of_edges; // Used for safely deleting edges at the end.
+
 void PrepareInitialData(map<string, double> *data) {
   // Given data.
   data->emplace(pX.repr(), .6);
@@ -105,28 +107,32 @@ struct Node {
   }
 };
 
+void LinkNodeAndEdge(Node *src_node, const Edge &edge, Node *dest_node) {
+  // Sets the nodes to be connected to the edge.
+  src_node->child_edges.push_back(edge);
+  dest_node->parent_edges.push_back(edge);
+}
+
 struct Edge {
   Notation notation;
-  Node src, dest;
-  Edge(const Notation &n, const Node &src, const Node &dest) {
+  Node *src, *dest;
+  Edge(const Notation &n, Node *src, Node *dest) {
     this->notation = n;
     this->src = src;
     this->dest = dest;
+    LinkNodeAndEdge(src, *this, dest);
+    global_list_of_edges.push_back(*this);
   }
   string repr() {
     return notation.repr();
   }
 }
 
-void LinkNodeAndEdge(Node *node, Edge *edge) {
-
-}
-
 // Warning: Creates data on heap. Call DestroyTrellis after done.
 // Post: 'nodes' points to a vector where [0] is the start node, back() is the
 // end, and the vector lists the nodes in topological order. 'edges' points to a
 // vector of corresponding edges.
-void BuildTrellis(vector<Node> *nodes, Vector<Edge> *edges) {
+void BuildTrellis(vector<Node> *nodes, vector<Edge> *select_edges) {
   Node start_node = new Node("start", 0);
   nodes->push_back(start_node);
   Node xa1first = new Node("xa1first", 1);
@@ -156,7 +162,38 @@ void BuildTrellis(vector<Node> *nodes, Vector<Edge> *edges) {
   Node end_node = new Node("end", 7);
   nodes->push_back(end_node);
 
-  // TODONOW
+  // From the start point.
+  Edge pX_edge = new Edge(pX, &start_node, &xa1first);
+  Edge pY_edge = new Edge(pY, &start_node, &ya1first);
+
+  // The diagonals.
+  Edge pYGivenX_edge = new Edge(pYGivenX, &xa2first, &yb1second);
+  Edge pXGivenY_edge = new Edge(pXGivenY, &ya2first, &xb1second);
+  Edge pYGivenX_edge2 = new Edge(pYGivenX, &xb2second, &ya1third);
+  Edge pXGivenY_edge2 = new Edge(pXGivenY, &yb2second, &xa1third);
+
+  // Across the top.
+  Edge pAGivenX_edge = new Edge(pAGivenX, &xa1first, &xa2first);
+  Edge pXGivenX_edge = new Edge(pXGivenX, &xa2first, &xb1second);
+  Edge pBGivenX_edge = new Edge(pBGivenX, &xb1second, &xb2second);
+  Edge pXGivenX_edge2 = new Edge(pXGivenX, &xb2second, &xa1third);
+  Edge pAGivenX_edge2 = new Edge(pAGivenX, &xa1third, &xa2third);
+
+  // Across the bottom.
+  Edge pAGivenY_edge = new Edge(pAGivenY, &ya1first, &ya2first);
+  Edge pYGivenY_edge = new Edge(pYGivenY, &ya2first, &yb1second);
+  Edge pBGivenY_edge = new Edge(pBGivenY, &yb1second, &yb2second);
+  Edge pYGivenY_edge2 = new Edge(pYGivenY, &yb2second, &ya1third);
+  Edge pAGivenY_edge2 = new Edge(pAGivenY, &ya1third, &ya2third);
+
+  // To the end point.
+  Edge x_last_edge = new Edge(p1, &xa2third, &end_node);
+  Edge y_last_edge = new Edge(p1, &ya2third, &end_node);
+
+  select_edges.push_back(pAGivenX_edge);
+  select_edges.push_back(pAGivenY_edge);
+  select_edges.push_back(pBGivenX_edge);
+  select_edges.push_back(pBGivenY_edge);
 }
 
 void ForwardBackwardCompute(const vector<Node> &nodes, 
@@ -171,21 +208,23 @@ void ForwardBackwardCompute(const vector<Node> &nodes,
   for (int i = 1; i < nodes.size(); ++i) {
     double sum = 0;
     for (Edge e : nodes[i].parent_edges) {
-      sum += alpha[e.src.repr()] * data->at(e.repr());
+      sum += alpha[e->src.repr()] * data->at(e.repr());
     }
     alpha[nodes[i].repr()] = sum;
   }
 
   // Backward pass. TODO.
 
-  // Counting pass.
-  (*data)[count_key] = 0;
+  // Counting pass. First reset and then update the counts.
+  (*data)[cXA.repr()] = 0;
+  (*data)[cXB.repr()] = 0;
+  // need cAY too?
   for (int i = 0; i < select_edges.size(); ++i) {
     Edge e = select_edges[i];
-    string count_key = NotationHelper::ConvertPredicate("C", e.repr());
+    string count_key = NotationHelper::ConvertPredicate(e.repr());
     cout << "Getting count key " << count_key << " from " << e.repr() << endl;
-    (*data)[count_key] += (alpha[e.src.repr()] * data->at(e.repr())
-                           * beta[e.dest.repr()]) / alpha[nodes.back().repr()];
+    (*data)[count_key] += (alpha[e->src.repr()] * data->at(e.repr())
+                           * beta[e->dest.repr()]) / alpha[nodes.back().repr()];
   }
 
   // Update the unknown probabilities that we want to find. Use them in the

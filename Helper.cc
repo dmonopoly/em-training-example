@@ -17,9 +17,16 @@ namespace NotationHelper {
     return predicate + "(" + target + ")";
   }
 
-  string ConvertPredicate(const string &new_pred, const Notation &n) {
-    return n.repr().replace(n.repr().begin(), n.repr()+n.predicate.size(),
-        new_pred);
+  string ConvertPredicate(const Notation &n) {
+    string result;
+    if (n.repr().find("A") != string::npos && n.repr().find("X"))
+      result = "cXA";
+    else if (n.repr().find("A") != string::npos && n.repr().find("Y"))
+      result = "cYA";
+    else if (n.repr().find("B") != string::npos && n.repr().find("X"))
+      result = "cXB";
+    else if (n.repr().find("B") != string::npos && n.repr().find("Y"))
+      retult = "cYB";
   }
 }
 
