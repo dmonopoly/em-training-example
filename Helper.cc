@@ -31,6 +31,14 @@ namespace NotationHelper {
   }
 }
 
+namespace GraphHelper {
+  void LinkNodeAndEdge(Node *src_node, Edge &edge, Node *dest_node) {
+    // Sets the nodes to be connected to the edge.
+    src_node->child_edges.push_back(&edge);
+    dest_node->parent_edges.push_back(&edge);
+  }
+}
+
 namespace Calculator {
   double ComputeNormalizedProbability(const Notation &n, const map<string,
       double> &data, const int &tag_list_size, const int &observed_data_size) {

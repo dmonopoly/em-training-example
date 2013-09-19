@@ -22,6 +22,7 @@ const vector<string> TAG_LIST{X, Y};
 const vector<string> OBSERVED_DATA{A, B, A};
 
 // Known probabilities:
+Notation p1("P", {"1"}, {}); // probability 1
 Notation pX("P", {X}, {});  // "probability of x"
 Notation pY("P", {Y}, {});
 Notation pXGivenX("P", {X}, {X});
@@ -88,12 +89,6 @@ void BruteForceCompute(map<string, double> *data) {
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
     cout << pABA << ": " << (*data)[pABA.repr()] << endl;
   }
-}
-
-void LinkNodeAndEdge(Node *src_node, const Edge &edge, Node *dest_node) {
-  // Sets the nodes to be connected to the edge.
-  src_node->child_edges.push_back(&edge);
-  dest_node->parent_edges.push_back(&edge);
 }
 
 // Warning: Creates data on heap. Call DestroyTrellis after done.
@@ -199,15 +194,15 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   map<string, double> beta;  // Sum of all paths from this node to final state.
 
   // Set start node alpha value to 1.
-  alpha[nodes->at(0)->repr()] = 1;
+  alpha[nodes.at(0)->repr()] = 1;
 
   // Forward pass. Assumes start node is at i = 0.
   for (int i = 1; i < nodes.size(); ++i) {
     double sum = 0;
     for (Edge *e : nodes[i]->parent_edges) {
-      sum += alpha[e->src.repr()] * data->at(e->repr());
+      sum += alpha[e->src->repr()] * data->at(e->repr());
     }
-    alpha[nodes[i].repr()] = sum;
+    alpha[nodes[i]->repr()] = sum;
   }
 
   // Backward pass. TODO.
@@ -217,11 +212,11 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   (*data)[cXB.repr()] = 0;
   // need cAY too?
   for (int i = 0; i < select_edges.size(); ++i) {
-    Edge e = select_edges[i];
-    string count_key = NotationHelper::ConvertPredicate(e.repr());
-    cout << "Getting count key " << count_key << " from " << e.repr() << endl;
-    (*data)[count_key] += (alpha[e->src.repr()] * data->at(e.repr())
-                           * beta[e->dest.repr()]) / alpha[nodes.back().repr()];
+    Edge *e = select_edges[i];
+    string count_key = NotationHelper::ConvertPredicate(e->repr());
+    cout << "Getting count key " << count_key << " from " << e->repr() << endl;
+    (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
+                           * beta[e->dest->repr()]) / alpha[nodes.back()->repr()];
   }
 
   // Update the unknown probabilities that we want to find. Use them in the

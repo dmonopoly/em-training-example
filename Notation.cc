@@ -2,6 +2,10 @@
 
 const string Notation::GIVEN_DELIM = "|";
 
+Notation::Notation() {
+
+}
+
 Notation::Notation(string predicate) {
   this->predicate = predicate;
 }

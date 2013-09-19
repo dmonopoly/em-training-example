@@ -16,6 +16,7 @@ class Notation {
   string predicate;  // P or C
   vector<string> first;  // Each string can be used as a key to the map.
   vector<string> second;
+  Notation();
   Notation(string predicate);
   Notation(string predicate, initializer_list<string> first_args,
       initializer_list<string> second_args);
