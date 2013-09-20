@@ -66,21 +66,30 @@ namespace Calculator {
       *data, const vector<string> &tagSequences) {
     double sum = 0;
     for (string tagSeq : tagSequences) {
-      // Compute P(t1,t2,t3). Compute P(aba|t1,t2,t3) = P(a|t1)P(b|t2)...
+      // Compute P(t1,t2,t3) = P(t1)P(t2|t1)P(t3|t2).
+      // Compute P(aba|t1,t2,t3) = P(a|t1)P(b|t2)...
       double probOfTagSeq = 1;
       double probOfObservedGivenTagSeq = 1;
       assert(tagSeq.size() == observedNotation.first.size() && "Tag sequence "
           "and observed data sequence are not the same size.");
       cout << "For tag seq: " << tagSeq << endl;
+      string prevTag;
       for (int i = 0; i < tagSeq.size(); ++i) {
         string currTag = string(1, tagSeq[i]);
-        string tagKey = NotationHelper::SurroundWithParentheses("P", currTag);
-        cout << "value for " << tagKey << ": " << data->at(tagKey) << endl;
-        probOfTagSeq *= data->at(tagKey);
+        string tagKey;
+        if (i == 0) {
+          tagKey = NotationHelper::SurroundWithParentheses("P", currTag);
+          probOfTagSeq *= data->at(tagKey);
+        } else {
+          tagKey = NotationHelper::SurroundWithParentheses("P", currTag + Notation::GIVEN_DELIM + prevTag);
+          probOfTagSeq *= data->at(tagKey);
+        }
+        prevTag = currTag;
+        cout << tagKey << ": " << data->at(tagKey) << endl;
 
         string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
             observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
-        cout << "value for " << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
+        cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
         probOfObservedGivenTagSeq *= data->at(obsGivenTagKey);
       }
       sum += probOfTagSeq*probOfObservedGivenTagSeq;

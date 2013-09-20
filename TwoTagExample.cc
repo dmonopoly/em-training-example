@@ -18,6 +18,8 @@ const string B = "B";
 const vector<string> TAG_LIST{X, Y};
 const vector<string> OBSERVED_DATA{A, B, A};
 
+vector<double> saved_pABA_results;
+
 // Known probabilities:
 Notation pX("P", {X}, {});  // "probability of x"
 Notation pY("P", {Y}, {});
@@ -99,11 +101,18 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
     Calculator::UpdateProbOfObsDataSeq(pABA, data, tagSequences);
+    cout << "--Summary of iteration " << i+1 << "--\n";
     cout << cXA << ": " << (*data)[cXA.repr()] << endl;
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
     cout << cYA << ": " << (*data)[cYA.repr()] << endl;
     cout << cYB << ": " << (*data)[cYB.repr()] << endl;
+    cout << pAGivenX << ": " << (*data)[pAGivenX.repr()] << endl;
+    cout << pBGivenX << ": " << (*data)[pBGivenX.repr()] << endl;
+    cout << pAGivenY << ": " << (*data)[pAGivenY.repr()] << endl;
+    cout << pBGivenY << ": " << (*data)[pBGivenY.repr()] << endl;
     cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+    cout << endl;
+    saved_pABA_results.push_back((*data)[pABA.repr()]);
   }
 }
 
@@ -114,10 +123,12 @@ int main() {
   
   // Goal:
   cout << "--Results--\n";
-  cout << cXA << ": " << data[cXA.repr()] << endl;
-  cout << cXB << ": " << data[cXB.repr()] << endl;
-  cout << cYA << ": " << data[cYA.repr()] << endl;
-  cout << cYB << ": " << data[cYB.repr()] << endl;
-  cout << pABA << ": " << data[pABA.repr()] << endl;
+  cout << pABA << ": ";
+  assert(NUMBER_ITERATIONS == saved_pABA_results.size());
+  for (int i = 0; i < saved_pABA_results.size(); ++i) {
+    cout << saved_pABA_results[i] << " ";
+  }
+  cout << endl;
+  cout << "Final: " << data[pABA.repr()] << endl;
   return 0;
 }
