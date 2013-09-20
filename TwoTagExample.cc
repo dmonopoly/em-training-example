@@ -21,6 +21,8 @@ const string B = "B";
 const vector<string> TAG_LIST{X, Y};
 const vector<string> OBSERVED_DATA{A, B, A};
 
+vector<double> saved_pABA_results;
+
 // Known probabilities:
 Notation p1("P", {"1"}, {}); // probability 1
 Notation pX("P", {X}, {});  // "probability of x"
@@ -37,6 +39,9 @@ Notation pBGivenX("P", {B}, {X});
 Notation pBGivenY("P", {B}, {Y});
 Notation cXA("C", {X, A}, {});  // "count of x intersected with a"
 Notation cXB("C", {X, B}, {});
+Notation cYA("C", {Y, A}, {});
+Notation cYB("C", {Y, B}, {});
+
 
 void PrepareInitialData(map<string, double> *data) {
   // Given data.
@@ -60,6 +65,13 @@ void BruteForceCompute(map<string, double> *data) {
   vector<string> tagSequences{
     X+X+X, X+X+Y, X+Y+X, X+Y+Y,
     Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
+  // Initially
+  cout << "Initially: \n";
+  cout << cXA << ": " << (*data)[cXA.repr()] << endl;
+  cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+  cout << cYA << ": " << (*data)[cYA.repr()] << endl;
+  cout << cYB << ": " << (*data)[cYB.repr()] << endl;
+  cout << pABA << ": " << (*data)[pABA.repr()] << endl;
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
     // Get norm P(t,w) and counts.
@@ -71,9 +83,13 @@ void BruteForceCompute(map<string, double> *data) {
       data->emplace(pTW.repr(), normalizedProb);
       // Get counts.
       (*data)[cXA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
-                                                        cXA);
-      (*data)[cXB.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
-                                                        cXB);
+          cXA);
+      (*data)[cXB.repr()] +=
+        Calculator::NormProbFactor(normalizedProb, pTW, cXB);
+      (*data)[cYA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
+          cYA);
+      (*data)[cYB.repr()] +=
+        Calculator::NormProbFactor(normalizedProb, pTW, cYB);
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
@@ -81,13 +97,26 @@ void BruteForceCompute(map<string, double> *data) {
         (*data)[cXB.repr()] );
     (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
         (*data)[cXA.repr()] );
+    (*data)[pAGivenY.repr()] = (*data)[cYA.repr()]/( (*data)[cYA.repr()] +
+        (*data)[cYB.repr()] );
+    (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
+        (*data)[cYA.repr()] );
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
     Calculator::UpdateProbOfObsDataSeq(pABA, data, tagSequences);
+    cout << "--Summary of iteration " << i+1 << "--\n";
     cout << cXA << ": " << (*data)[cXA.repr()] << endl;
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+    cout << cYA << ": " << (*data)[cYA.repr()] << endl;
+    cout << cYB << ": " << (*data)[cYB.repr()] << endl;
+    cout << pAGivenX << ": " << (*data)[pAGivenX.repr()] << endl;
+    cout << pBGivenX << ": " << (*data)[pBGivenX.repr()] << endl;
+    cout << pAGivenY << ": " << (*data)[pAGivenY.repr()] << endl;
+    cout << pBGivenY << ": " << (*data)[pBGivenY.repr()] << endl;
     cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+    cout << endl;
+    saved_pABA_results.push_back((*data)[pABA.repr()]);
   }
 }
 
@@ -275,6 +304,13 @@ void RunEfficientEM() {
 
 int main() {
   RunBruteForceEM();
-  RunEfficientEM();
+  //RunEfficientEM();
+  cout << pABA << ": ";
+  assert(NUMBER_ITERATIONS == saved_pABA_results.size());
+  for (int i = 0; i < saved_pABA_results.size(); ++i) {
+    cout << saved_pABA_results[i] << " ";
+  }
+  cout << endl;
+  cout << "Final: " << data[pABA.repr()] << endl;
   return 0;
 }
