@@ -7,7 +7,7 @@
 #include "Notation.h"
 
 // The number of iterations to do the EM training.
-#define NUMBER_ITERATIONS 5
+#define NUMBER_ITERATIONS 100
 
 using namespace std;
 
@@ -17,7 +17,12 @@ const string A = "A";
 const string B = "B";
 const vector<string> TAG_LIST{X, Y};
 const vector<string> OBSERVED_DATA{A, B, A};
+// Enumerate all possible tag sequences for the brute force method.
+const vector<string> TAG_SEQUENCES{
+  X+X+X, X+X+Y, X+Y+X, X+Y+Y,
+  Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
 
+// For output.
 vector<double> saved_pABA_results;
 
 // Known probabilities:
@@ -57,26 +62,23 @@ void PrepareInitialData(map<string, double> *data) {
 }
 
 void ComputeDataWithBruteForce(map<string, double> *data) {
-  // Enumerate all possible tag sequences.
-  vector<string> tagSequences{
-    X+X+X, X+X+Y, X+Y+X, X+Y+Y,
-    Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
-  // Initially
+  saved_pABA_results.push_back((*data)[pABA.repr()]);
   cout << "Initially: \n";
   cout << cXA << ": " << (*data)[cXA.repr()] << endl;
   cout << cXB << ": " << (*data)[cXB.repr()] << endl;
   cout << cYA << ": " << (*data)[cYA.repr()] << endl;
   cout << cYB << ": " << (*data)[cYB.repr()] << endl;
-  cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+  cout << pABA << ": " << (*data)[pABA.repr()] << endl << endl;
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
     // Get norm P(t,w) and counts.
-    for (string seq : tagSequences) {
+    for (string seq : TAG_SEQUENCES) {
       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, tags);
       double normalizedProb = Calculator::ComputeNormalizedProbability(pTW,
           *data, TAG_LIST.size(), OBSERVED_DATA.size());
-      data->emplace(pTW.repr(), normalizedProb);
+      (*data)[pTW.repr()] = normalizedProb;
+
       // Get counts.
       (*data)[cXA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
           cXA);
@@ -100,7 +102,7 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
-    Calculator::UpdateProbOfObsDataSeq(pABA, data, tagSequences);
+    Calculator::UpdateProbOfObsDataSeq(pABA, data, TAG_SEQUENCES);
     cout << "--Summary of iteration " << i+1 << "--\n";
     cout << cXA << ": " << (*data)[cXA.repr()] << endl;
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
@@ -122,13 +124,29 @@ int main() {
   ComputeDataWithBruteForce(&data);
   
   // Goal:
-  cout << "--Results--\n";
+  cout << "--Results based on " << NUMBER_ITERATIONS << "iterations--\n";
   cout << pABA << ": ";
-  assert(NUMBER_ITERATIONS == saved_pABA_results.size());
   for (int i = 0; i < saved_pABA_results.size(); ++i) {
     cout << saved_pABA_results[i] << " ";
   }
   cout << endl;
-  cout << "Final: " << data[pABA.repr()] << endl;
+  cout << "Final " << pABA << ": " << data[pABA.repr()] << endl << endl;
+
+  cout << "Determining the best matching tag sequence:\n";
+  vector<string> tags = NotationHelper::Individualize(TAG_SEQUENCES[0]);
+  Notation pTW_first("P", OBSERVED_DATA, tags);
+  string best_match_string_repr = pTW_first.repr();
+  for (string seq : TAG_SEQUENCES) {
+    vector<string> tags = NotationHelper::Individualize(seq);
+    Notation pTW("P", OBSERVED_DATA, tags);
+    cout << pTW << ": " << data[pTW.repr()] << endl;
+    if (data[pTW.repr()] > data[best_match_string_repr])
+      best_match_string_repr = pTW.repr();
+  }
+  cout << "The highest probability found belongs to " << best_match_string_repr
+    << ": " << data[best_match_string_repr] << endl;
+  cout << "The best matching tag sequence is " <<
+    best_match_string_repr.substr(8, 5) << endl;
+
   return 0;
 }

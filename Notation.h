@@ -12,11 +12,14 @@ using namespace std;
 class Notation {
  public:
   static const string GIVEN_DELIM;
+  static const string AND_DELIM;
 
   string predicate;  // P or C
+  string delimiter; // either GIVEN_DELIM or AND_DELIM
   vector<string> first;  // Each string can be used as a key to the map.
   vector<string> second;
   Notation(string predicate);
+  Notation(string predicate, initializer_list<string> first_args);
   Notation(string predicate, initializer_list<string> first_args,
       initializer_list<string> second_args);
   Notation(string predicate, vector<string> first, vector<string> second);

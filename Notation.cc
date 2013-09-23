@@ -1,6 +1,7 @@
 #include "Notation.h"
 
 const string Notation::GIVEN_DELIM = "|";
+const string Notation::AND_DELIM = ",";
 
 Notation::Notation(string predicate) {
   this->predicate = predicate;
@@ -22,6 +23,10 @@ Notation::Notation(string predicate, vector<string> first, vector<string> second
 }
 
 string Notation::repr() const {
+  // TODO: Clarify notation to be more flexible. Comma strictly means AND, and
+  // sometimes one list may want that, e.g. P(aba|t1,t2,t3). Also, this assumes
+  // GIVEN_DELIM is the intended meaning; new param in constructor to allow
+  // AND_DELIM instead?
   stringstream ss;
   ss << this->predicate << "(";
   for (int i = 0; i < this->first.size()-1; ++i)

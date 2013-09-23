@@ -1,5 +1,7 @@
 #include "Helper.h"
 
+#define PRINTING_ON false
+
 namespace NotationHelper {
   vector<string> Individualize(const string &s) {
     stringstream ss;
@@ -41,7 +43,6 @@ namespace Calculator {
       assert(it != data.end() && "wordTagKey was not found");
       double wordTagProb = it->second;
 
-      //cout << tagKey << ": " << tagProb << ", " << wordTagKey << ": " << wordTagProb << endl;
       d *= tagProb;
       d *= wordTagProb;
     }
@@ -72,7 +73,8 @@ namespace Calculator {
       double probOfObservedGivenTagSeq = 1;
       assert(tagSeq.size() == observedNotation.first.size() && "Tag sequence "
           "and observed data sequence are not the same size.");
-      cout << "For tag seq: " << tagSeq << endl;
+      if (PRINTING_ON)
+        cout << "For tag seq: " << tagSeq << endl;
       string prevTag;
       for (int i = 0; i < tagSeq.size(); ++i) {
         string currTag = string(1, tagSeq[i]);
@@ -85,16 +87,19 @@ namespace Calculator {
           probOfTagSeq *= data->at(tagKey);
         }
         prevTag = currTag;
-        cout << tagKey << ": " << data->at(tagKey) << endl;
+        if (PRINTING_ON)
+          cout << tagKey << ": " << data->at(tagKey) << endl;
 
         string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
             observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
-        cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
+        if (PRINTING_ON)
+          cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
         probOfObservedGivenTagSeq *= data->at(obsGivenTagKey);
       }
       sum += probOfTagSeq*probOfObservedGivenTagSeq;
     }
-    cout << "Setting " << observedNotation.repr() << " to " << sum << endl;
+    if (PRINTING_ON)
+      cout << "Setting " << observedNotation.repr() << " to " << sum << endl;
     (*data)[observedNotation.repr()] = sum;
   }
 }

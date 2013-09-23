@@ -12,6 +12,7 @@
 using namespace std;
 
 namespace NotationHelper {
+  // Returns a vector of strings of length 1 representing each character in s.
   vector<string> Individualize(const string &s);
   string SurroundWithParentheses(const string &predicate, const string &target);
 }
@@ -19,7 +20,10 @@ namespace NotationHelper {
 // Notation Calculator methods that use the map of calculations.
 namespace Calculator {
   // Pre: Notation object's 'first' and 'second' values have same length.
-  // Post: Normalized probability.
+  // 'first' represents the observed data; 'second', the proposed data
+  // completion. Essentially, P(t, w), with AND.
+  // Post: Normalized probability for the data completion represented by
+  // Notation n - i.e., P(t, w).
   double ComputeNormalizedProbability(const Notation &n, const map<string,
       double> &data, const int &tag_list_size, const int &observed_data_size);
 
@@ -28,7 +32,7 @@ namespace Calculator {
   // of observed data | tags). cn is like C(X, A), so cn.first has size 2, and
   // cn.second has size 0.  Uses pn (prob notation) and cn (count notation) to
   // check if factor needed. 
-  // Post: Returns the normalized probability*number of matches. e.g., 216*2. 
+  // Post: Returns the normalized probability*number of matches. e.g., .216*2. 
   double NormProbFactor(const double &normalizedProb, const Notation &pn, const
       Notation &cn);
 
