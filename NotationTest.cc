@@ -1,52 +1,61 @@
 #include <assert.h>
 
+// TODO: Could clean up and use constants.
 // Includes various libraries as well and sets namespace to std.
 #include "Notation.h"
 
+const string X = "X";
+const string Y = "Y";
+const string A = "A";
+const string B = "B";
+
 void TestXGivenY() {
-  Notation n("P");
-  vector<string> test;
-  test.push_back("a");
-  test.push_back("b");
-  n.set_first(test);
-  n.set_second(test);
-
+  Notation pXGivenY("P", {X}, Notation::GIVEN_DELIM, {Y});
   stringstream ss;  // We simulate 'cout <<' with this.
-
-  ss << n;
+  ss << pXGivenY;
   cout << ss.str() << endl;
-  assert(ss.str() == "P(a,b|a,b)");
+  assert(ss.str() == "P(" + X + Notation::GIVEN_DELIM + Y + ")");
   ss.clear();
 }
 
 void TestJustX() {
-  Notation n("P");
-  vector<string> test;
-  test.push_back("a");
-  test.push_back("b");
-  n.set_first(test);
-  //n.set_second(test);  // This time, second is never set.
-
+  Notation pX("P", {X});
   stringstream ss;  // We simulate 'cout <<' with this.
-
-  ss << n;
+  ss << pX;
   cout << ss.str() << endl;
-  assert(ss.str() == "P(a,b)" && "Nonexistent second vector didn't work.");
+  assert(ss.str() == "P("+X+")" && "Nonexistent second vector didn't work.");
 }
 
-void TestJustXAgain() {
-  Notation n("C", {"A","B","C"}, {});
+void TestChainX() {
+  Notation pABA("P", {A,B,A}, Notation::SEQ_DELIM);
   stringstream ss;
-  ss << n;
+  ss << pABA;
   cout << ss.str() << endl;
-  assert(ss.str() == "C(A,B,C)" && "No good for JustXAgain.");
+  assert(ss.str() == "P(ABA)");
+
+  ss.clear();
+  ss.str("");
+
+  Notation pABA2("P", {A,B,A}, Notation::AND_DELIM);
+  ss << pABA2;
+  cout << ss.str() << endl;
+  assert(ss.str() == "P(A,B,A)");
+
+  ss.clear();
+  ss.str("");
+
+  Notation pAGivenX("P", {A}, Notation::GIVEN_DELIM, {X});
+  ss << pAGivenX;
+  cout << ss.str() << endl;
+  assert(ss.str() == "P(A|X)");
+  assert(pAGivenX.repr() == "P(A|X)");
 }
 
 void TestNotation() {
   cout << "Testing Notation..." << endl;
   TestXGivenY();
   TestJustX();
-  TestJustXAgain();
+  TestChainX();
   cout << "Test(s) passed." << endl;
 }
 

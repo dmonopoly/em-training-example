@@ -9,6 +9,11 @@
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 100
 
+// TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
+#define GIVEN_DELIM "|"
+#define AND_DELIM ","
+#define SEQ_DELIM ""
+
 using namespace std;
 
 const string X = "X";
@@ -18,31 +23,29 @@ const string B = "B";
 const vector<string> TAG_LIST{X, Y};
 const vector<string> OBSERVED_DATA{A, B, A};
 // Enumerate all possible tag sequences for the brute force method.
-const vector<string> TAG_SEQUENCES{
-  X+X+X, X+X+Y, X+Y+X, X+Y+Y,
-  Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
+const vector<string> TAG_SEQUENCES{X+X+X, X+X+Y, X+Y+X, X+Y+Y,
+                                   Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
 
 // For output.
 vector<double> saved_pABA_results;
 
 // Known probabilities:
-Notation pX("P", {X}, {});  // "probability of x"
-Notation pY("P", {Y}, {});
-Notation pXGivenX("P", {X}, {X});
-Notation pYGivenX("P", {Y}, {X});
-Notation pXGivenY("P", {X}, {Y});
-Notation pYGivenY("P", {Y}, {Y});
+Notation pX("P", {X});  // "probability of x"
+Notation pY("P", {Y});
+Notation pXGivenX("P", {X}, GIVEN_DELIM, {X});
+Notation pYGivenX("P", {Y}, GIVEN_DELIM, {X});
+Notation pXGivenY("P", {X}, GIVEN_DELIM, {Y});
+Notation pYGivenY("P", {Y}, GIVEN_DELIM, {Y});
 // Objectives:
-Notation pABA("P", {A,B,A}, {});
-Notation pAGivenX("P", {A}, {X});
-Notation pAGivenY("P", {A}, {Y});
-Notation pBGivenX("P", {B}, {X});
-Notation pBGivenY("P", {B}, {Y});
-Notation cXA("C", {X, A}, {});  // "count of x intersected with a"
-Notation cXB("C", {X, B}, {});
-Notation cYA("C", {Y, A}, {});
-Notation cYB("C", {Y, B}, {});
-
+Notation pABA("P", {A,B,A}, SEQ_DELIM);
+Notation pAGivenX("P", {A}, GIVEN_DELIM, {X});
+Notation pAGivenY("P", {A}, GIVEN_DELIM, {Y});
+Notation pBGivenX("P", {B}, GIVEN_DELIM, {X});
+Notation pBGivenY("P", {B}, GIVEN_DELIM, {Y});
+Notation cXA("C", {X, A}, AND_DELIM);  // "count of x and a"
+Notation cXB("C", {X, B}, AND_DELIM);
+Notation cYA("C", {Y, A}, AND_DELIM);
+Notation cYB("C", {Y, B}, AND_DELIM);
 
 void PrepareInitialData(map<string, double> *data) {
   // Given data.
@@ -69,12 +72,13 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
   cout << cYA << ": " << (*data)[cYA.repr()] << endl;
   cout << cYB << ": " << (*data)[cYB.repr()] << endl;
   cout << pABA << ": " << (*data)[pABA.repr()] << endl << endl;
+  
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
     // Get norm P(t,w) and counts.
     for (string seq : TAG_SEQUENCES) {
       vector<string> tags = NotationHelper::Individualize(seq);
-      Notation pTW("P", OBSERVED_DATA, tags);
+      Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
       double normalizedProb = Calculator::ComputeNormalizedProbability(pTW,
           *data, TAG_LIST.size(), OBSERVED_DATA.size());
       (*data)[pTW.repr()] = normalizedProb;
@@ -124,7 +128,7 @@ int main() {
   ComputeDataWithBruteForce(&data);
   
   // Goal:
-  cout << "--Results based on " << NUMBER_ITERATIONS << "iterations--\n";
+  cout << "--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
   cout << pABA << ": ";
   for (int i = 0; i < saved_pABA_results.size(); ++i) {
     cout << saved_pABA_results[i] << " ";
@@ -134,19 +138,24 @@ int main() {
 
   cout << "Determining the best matching tag sequence:\n";
   vector<string> tags = NotationHelper::Individualize(TAG_SEQUENCES[0]);
-  Notation pTW_first("P", OBSERVED_DATA, tags);
+  Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
+  Notation *best_pTW = NULL;
   string best_match_string_repr = pTW_first.repr();
   for (string seq : TAG_SEQUENCES) {
     vector<string> tags = NotationHelper::Individualize(seq);
-    Notation pTW("P", OBSERVED_DATA, tags);
+    Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
     cout << pTW << ": " << data[pTW.repr()] << endl;
-    if (data[pTW.repr()] > data[best_match_string_repr])
+    if (data[pTW.repr()] > data[best_match_string_repr]) {
       best_match_string_repr = pTW.repr();
+      delete best_pTW;
+      best_pTW = new Notation("P", OBSERVED_DATA, AND_DELIM, tags);
+    }
   }
   cout << "The highest probability found belongs to " << best_match_string_repr
     << ": " << data[best_match_string_repr] << endl;
   cout << "The best matching tag sequence is " <<
-    best_match_string_repr.substr(8, 5) << endl;
+    NotationHelper::Combine(best_pTW->second) << endl;
+  delete best_pTW;
 
   return 0;
 }

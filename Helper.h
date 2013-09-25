@@ -14,6 +14,8 @@ using namespace std;
 namespace NotationHelper {
   // Returns a vector of strings of length 1 representing each character in s.
   vector<string> Individualize(const string &s);
+  // Returns a string that is the concatentation of all strings in v.
+  string Combine(const vector<string> &v);
   string SurroundWithParentheses(const string &predicate, const string &target);
 }
 

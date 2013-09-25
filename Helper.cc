@@ -15,6 +15,14 @@ namespace NotationHelper {
     return result;
   }
 
+  string Combine(const vector<string> &v) {
+    stringstream ss;
+    for (auto it = v.begin(); it != v.end(); ++it) {
+      ss << *it;
+    }
+    return ss.str();
+  }
+
   string SurroundWithParentheses(const string &predicate, const string &target) {
     return predicate + "(" + target + ")";
   }
