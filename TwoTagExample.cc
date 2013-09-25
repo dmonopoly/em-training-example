@@ -75,6 +75,12 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
   
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
+    // Reset counts to zero.
+    (*data)[cXA.repr()] = 0;
+    (*data)[cXB.repr()] = 0;
+    (*data)[cYA.repr()] = 0;
+    (*data)[cYB.repr()] = 0;
+
     // Get norm P(t,w) and counts.
     for (string seq : TAG_SEQUENCES) {
       vector<string> tags = NotationHelper::Individualize(seq);
