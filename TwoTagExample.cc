@@ -57,6 +57,7 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pYGivenY.repr(), .1);
 
   // Initial value for unknowns. We improve upon these.
+  // TODO
   double initVal = .5;
   data->emplace(pAGivenX.repr(), initVal);
   data->emplace(pAGivenY.repr(), initVal);
@@ -65,7 +66,7 @@ void PrepareInitialData(map<string, double> *data) {
 }
 
 void ComputeDataWithBruteForce(map<string, double> *data) {
-  saved_pABA_results.push_back((*data)[pABA.repr()]);
+  saved_pABA_results.push_back((*data)[pABA.repr()]); // push back initial 0
   cout << "Initially: \n";
   cout << cXA << ": " << (*data)[cXA.repr()] << endl;
   cout << cXB << ": " << (*data)[cXB.repr()] << endl;
@@ -145,23 +146,31 @@ int main() {
   cout << "Determining the best matching tag sequence:\n";
   vector<string> tags = NotationHelper::Individualize(TAG_SEQUENCES[0]);
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
-  Notation *best_pTW = NULL;
+  Notation *best_pTGivenW = NULL;
   string best_match_string_repr = pTW_first.repr();
   for (string seq : TAG_SEQUENCES) {
     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
-    cout << pTW << ": " << data[pTW.repr()] << endl;
+
+    // Compute P(t|w). Technically not used because divided values seem to
+    // incorrectly yield >1 (decimals too small, possibly).
+    Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
+    data[pTGivenW.repr()] = data[pTW.repr()] / data[pABA.repr()];
+    cout << pTW << ": " << data[pTW.repr()] << endl; // ", " << pTGivenW << ": " <<
+    //  data[pTGivenW.repr()] << endl;
     if (data[pTW.repr()] > data[best_match_string_repr]) {
       best_match_string_repr = pTW.repr();
-      delete best_pTW;
-      best_pTW = new Notation("P", OBSERVED_DATA, AND_DELIM, tags);
+      delete best_pTGivenW;
+      // Same as pTGivenW.
+      best_pTGivenW = new Notation("P", tags, GIVEN_DELIM, OBSERVED_DATA);
     }
   }
-  cout << "The highest probability found belongs to " << best_match_string_repr
-    << ": " << data[best_match_string_repr] << endl;
+  string pTAndWRepr = best_match_string_repr;
+  cout << "The highest probability found belongs to " << pTAndWRepr << ": " <<
+    data[pTAndWRepr] << endl;
   cout << "The best matching tag sequence is " <<
-    NotationHelper::Combine(best_pTW->second) << endl;
-  delete best_pTW;
+    NotationHelper::Combine(best_pTGivenW->first) << endl;
+  delete best_pTGivenW;
 
   return 0;
 }
