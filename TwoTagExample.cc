@@ -9,6 +9,9 @@
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 100
 
+// Two ways to run this program: with a short or a long observed sequence.
+#define DO_SHORT_SEQ true
+
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
 #define GIVEN_DELIM "|"
 #define AND_DELIM ","
@@ -21,10 +24,18 @@ const string Y = "Y";
 const string A = "A";
 const string B = "B";
 const vector<string> TAG_LIST{X, Y};
+#if DO_SHORT_SEQ
 const vector<string> OBSERVED_DATA{A, B, A};
 // Enumerate all possible tag sequences for the brute force method.
 const vector<string> TAG_SEQUENCES{X+X+X, X+X+Y, X+Y+X, X+Y+Y,
-                                   Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
+  Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
+#else
+const vector<string> OBSERVED_DATA{A,A,A,B,A,A,B,A,A};
+// Enumerate all possible tag sequences for the brute force method.
+// Not viable. TODO
+const vector<string> TAG_SEQUENCES{X+X+X, X+X+Y, X+Y+X, X+Y+Y,
+  Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
+#endif
 
 // For output.
 vector<double> saved_results;
@@ -37,7 +48,7 @@ Notation pYGivenX("P", {Y}, GIVEN_DELIM, {X});
 Notation pXGivenY("P", {X}, GIVEN_DELIM, {Y});
 Notation pYGivenY("P", {Y}, GIVEN_DELIM, {Y});
 // Objectives:
-// pABA
+// Short seq type.
 Notation pABA("P", {A,B,A}, SEQ_DELIM);
 Notation pAGivenX("P", {A}, GIVEN_DELIM, {X});
 Notation pAGivenY("P", {A}, GIVEN_DELIM, {Y});
@@ -47,7 +58,7 @@ Notation cXA("C", {X, A}, AND_DELIM);  // "count of x and a"
 Notation cXB("C", {X, B}, AND_DELIM);
 Notation cYA("C", {Y, A}, AND_DELIM);
 Notation cYB("C", {Y, B}, AND_DELIM);
-// pAAABAABAA
+// Long seq type.
 Notation pLong("P", {A,A,A,B,A,A,B,A,A}, SEQ_DELIM);
 
 void PrepareInitialData(map<string, double> *data) {
@@ -177,13 +188,12 @@ void OutputResults(map<string, double> &data, Notation n) {
 int main() {
   map<string, double> data;
   PrepareInitialData(&data);
-  // pABA - short sequence
-  ComputeDataWithBruteForce(&data, pABA);
-  OutputResults(data, pABA);
-  // pLong - long sequence
-  // TODO - not working yet
-//  ComputeDataWithBruteForce(&data, pLong);
-//  OutputResults(data, pLong);
-
+  if (DO_SHORT_SEQ) {
+    ComputeDataWithBruteForce(&data, pABA);
+    OutputResults(data, pABA);
+  } else {
+    ComputeDataWithBruteForce(&data, pLong);
+    OutputResults(data, pLong);
+  }
   return 0;
 }
