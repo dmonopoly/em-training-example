@@ -111,3 +111,22 @@ namespace Calculator {
     (*data)[observedNotation.repr()] = sum;
   }
 }
+
+namespace TagHandler {
+  vector<string> GenerateTagSequences(const vector<string> &tags, int size) {
+    vector<string> list;
+    if (size == 1) {
+      for (string t : tags) {
+        list.push_back(t);
+      }
+    } else {
+      vector<string> tmp = TagHandler::GenerateTagSequences(tags, size - 1);
+      for (string t1 : tags) {
+        for (string t2 : tmp) {
+          list.push_back(t1 + t2);
+        }
+      }
+    }
+    return list;
+  }
+}

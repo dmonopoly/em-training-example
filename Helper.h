@@ -46,4 +46,9 @@ namespace Calculator {
       double> *data, const vector<string> &tagSequences);
 }
 
+namespace TagHandler {
+  // Generates all possible tag sequences for the brute force method.
+  vector<string> GenerateTagSequences(const vector<string> &tags, int size);
+}
+
 #endif

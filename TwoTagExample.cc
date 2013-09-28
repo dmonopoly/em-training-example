@@ -10,7 +10,7 @@
 #define NUMBER_ITERATIONS 100
 
 // Two ways to run this program: with a short or a long observed sequence.
-#define DO_SHORT_SEQ true
+#define DO_SHORT_SEQ false
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
 #define GIVEN_DELIM "|"
@@ -26,15 +26,8 @@ const string B = "B";
 const vector<string> TAG_LIST{X, Y};
 #if DO_SHORT_SEQ
 const vector<string> OBSERVED_DATA{A, B, A};
-// Enumerate all possible tag sequences for the brute force method.
-const vector<string> TAG_SEQUENCES{X+X+X, X+X+Y, X+Y+X, X+Y+Y,
-  Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
 #else
 const vector<string> OBSERVED_DATA{A,A,A,B,A,A,B,A,A};
-// Enumerate all possible tag sequences for the brute force method.
-// Not viable. TODO
-const vector<string> TAG_SEQUENCES{X+X+X, X+X+Y, X+Y+X, X+Y+Y,
-  Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
 #endif
 
 // For output.
@@ -78,7 +71,8 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pBGivenY.repr(), initVal);
 }
 
-void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n) {
+void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
+                               const vector<string> &tag_sequences) {
   saved_results.push_back((*data)[n.repr()]); // push back initial 0
   cout << "Initially: \n";
   cout << cXA << ": " << (*data)[cXA.repr()] << endl;
@@ -86,7 +80,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n) {
   cout << cYA << ": " << (*data)[cYA.repr()] << endl;
   cout << cYB << ": " << (*data)[cYB.repr()] << endl;
   cout << n << ": " << (*data)[n.repr()] << endl << endl;
-  
+
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
     // Reset counts to zero.
@@ -96,7 +90,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n) {
     (*data)[cYB.repr()] = 0;
 
     // Get norm P(t,w) and counts.
-    for (string seq : TAG_SEQUENCES) {
+    for (string seq : tag_sequences) {
       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
       double normalizedProb = Calculator::ComputeNormalizedProbability(pTW,
@@ -126,7 +120,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n) {
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
-    Calculator::UpdateProbOfObsDataSeq(n, data, TAG_SEQUENCES);
+    Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
     cout << "--Summary of iteration " << i+1 << "--\n";
     cout << cXA << ": " << (*data)[cXA.repr()] << endl;
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
@@ -142,7 +136,8 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n) {
   }
 }
 
-void OutputResults(map<string, double> &data, Notation n) {
+void OutputResults(map<string, double> &data, Notation n, const vector<string>
+                   &tag_sequences) {
   cout << "--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
   cout << n << ": ";
   for (int i = 0; i < saved_results.size(); ++i) {
@@ -156,11 +151,11 @@ void OutputResults(map<string, double> &data, Notation n) {
   cout << "Final " << pBGivenY << ": " << data[pBGivenY.repr()] << endl << endl;
 
   cout << "Determining the best matching tag sequence:\n";
-  vector<string> tags = NotationHelper::Individualize(TAG_SEQUENCES[0]);
+  vector<string> tags = NotationHelper::Individualize(tag_sequences.at(0));
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
   Notation *best_pTGivenW = NULL;
   string best_match_string_repr = pTW_first.repr();
-  for (string seq : TAG_SEQUENCES) {
+  for (string seq : tag_sequences) {
     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
 
@@ -188,12 +183,14 @@ void OutputResults(map<string, double> &data, Notation n) {
 int main() {
   map<string, double> data;
   PrepareInitialData(&data);
+  vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+      OBSERVED_DATA.size());
   if (DO_SHORT_SEQ) {
-    ComputeDataWithBruteForce(&data, pABA);
-    OutputResults(data, pABA);
+    ComputeDataWithBruteForce(&data, pABA, tag_sequences);
+    OutputResults(data, pABA, tag_sequences);
   } else {
-    ComputeDataWithBruteForce(&data, pLong);
-    OutputResults(data, pLong);
+    ComputeDataWithBruteForce(&data, pLong, tag_sequences);
+    OutputResults(data, pLong, tag_sequences);
   }
   return 0;
 }
