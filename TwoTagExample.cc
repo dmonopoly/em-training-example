@@ -27,7 +27,7 @@ const vector<string> TAG_SEQUENCES{X+X+X, X+X+Y, X+Y+X, X+Y+Y,
                                    Y+X+X, Y+X+Y, Y+Y+X, Y+Y+Y};
 
 // For output.
-vector<double> saved_pABA_results;
+vector<double> saved_results;
 
 // Known probabilities:
 Notation pX("P", {X});  // "probability of x"
@@ -37,6 +37,7 @@ Notation pYGivenX("P", {Y}, GIVEN_DELIM, {X});
 Notation pXGivenY("P", {X}, GIVEN_DELIM, {Y});
 Notation pYGivenY("P", {Y}, GIVEN_DELIM, {Y});
 // Objectives:
+// pABA
 Notation pABA("P", {A,B,A}, SEQ_DELIM);
 Notation pAGivenX("P", {A}, GIVEN_DELIM, {X});
 Notation pAGivenY("P", {A}, GIVEN_DELIM, {Y});
@@ -46,6 +47,8 @@ Notation cXA("C", {X, A}, AND_DELIM);  // "count of x and a"
 Notation cXB("C", {X, B}, AND_DELIM);
 Notation cYA("C", {Y, A}, AND_DELIM);
 Notation cYB("C", {Y, B}, AND_DELIM);
+// pAAABAABAA
+Notation pLong("P", {A,A,A,B,A,A,B,A,A}, SEQ_DELIM);
 
 void PrepareInitialData(map<string, double> *data) {
   // Given data.
@@ -57,7 +60,6 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pYGivenY.repr(), .1);
 
   // Initial value for unknowns. We improve upon these.
-  // TODO
   double initVal = .5;
   data->emplace(pAGivenX.repr(), initVal);
   data->emplace(pAGivenY.repr(), initVal);
@@ -65,14 +67,14 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pBGivenY.repr(), initVal);
 }
 
-void ComputeDataWithBruteForce(map<string, double> *data) {
-  saved_pABA_results.push_back((*data)[pABA.repr()]); // push back initial 0
+void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n) {
+  saved_results.push_back((*data)[n.repr()]); // push back initial 0
   cout << "Initially: \n";
   cout << cXA << ": " << (*data)[cXA.repr()] << endl;
   cout << cXB << ": " << (*data)[cXB.repr()] << endl;
   cout << cYA << ": " << (*data)[cYA.repr()] << endl;
   cout << cYB << ": " << (*data)[cYB.repr()] << endl;
-  cout << pABA << ": " << (*data)[pABA.repr()] << endl << endl;
+  cout << n << ": " << (*data)[n.repr()] << endl << endl;
   
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
     cout << "#" << i+1 << ":\n";
@@ -113,7 +115,7 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
-    Calculator::UpdateProbOfObsDataSeq(pABA, data, TAG_SEQUENCES);
+    Calculator::UpdateProbOfObsDataSeq(n, data, TAG_SEQUENCES);
     cout << "--Summary of iteration " << i+1 << "--\n";
     cout << cXA << ": " << (*data)[cXA.repr()] << endl;
     cout << cXB << ": " << (*data)[cXB.repr()] << endl;
@@ -123,25 +125,20 @@ void ComputeDataWithBruteForce(map<string, double> *data) {
     cout << pBGivenX << ": " << (*data)[pBGivenX.repr()] << endl;
     cout << pAGivenY << ": " << (*data)[pAGivenY.repr()] << endl;
     cout << pBGivenY << ": " << (*data)[pBGivenY.repr()] << endl;
-    cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+    cout << n << ": " << (*data)[n.repr()] << endl;
     cout << endl;
-    saved_pABA_results.push_back((*data)[pABA.repr()]);
+    saved_results.push_back((*data)[n.repr()]);
   }
 }
 
-int main() {
-  map<string, double> data;
-  PrepareInitialData(&data);
-  ComputeDataWithBruteForce(&data);
-  
-  // Goal:
+void OutputResults(map<string, double> &data, Notation n) {
   cout << "--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
-  cout << pABA << ": ";
-  for (int i = 0; i < saved_pABA_results.size(); ++i) {
-    cout << saved_pABA_results[i] << " ";
+  cout << n << ": ";
+  for (int i = 0; i < saved_results.size(); ++i) {
+    cout << saved_results[i] << " ";
   }
   cout << endl << endl;
-  cout << "Final " << pABA << ": " << data[pABA.repr()] << endl;
+  cout << "Final " << n << ": " << data[n.repr()] << endl;
   cout << "Final " << pAGivenX << ": " << data[pAGivenX.repr()] << endl;
   cout << "Final " << pBGivenX << ": " << data[pBGivenX.repr()] << endl;
   cout << "Final " << pAGivenY << ": " << data[pAGivenY.repr()] << endl;
@@ -159,7 +156,7 @@ int main() {
     // Compute P(t|w). Technically not used because divided values seem to
     // incorrectly yield >1 (decimals too small, possibly).
     Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
-    data[pTGivenW.repr()] = data[pTW.repr()] / data[pABA.repr()];
+    data[pTGivenW.repr()] = data[pTW.repr()] / data[n.repr()];
     cout << pTW << ": " << data[pTW.repr()] << endl; // ", " << pTGivenW << ": " <<
     //  data[pTGivenW.repr()] << endl;
     if (data[pTW.repr()] > data[best_match_string_repr]) {
@@ -175,6 +172,18 @@ int main() {
   cout << "The best matching tag sequence is " <<
     NotationHelper::Combine(best_pTGivenW->first) << endl;
   delete best_pTGivenW;
+}
+
+int main() {
+  map<string, double> data;
+  PrepareInitialData(&data);
+  // pABA - short sequence
+  ComputeDataWithBruteForce(&data, pABA);
+  OutputResults(data, pABA);
+  // pLong - long sequence
+  // TODO - not working yet
+//  ComputeDataWithBruteForce(&data, pLong);
+//  OutputResults(data, pLong);
 
   return 0;
 }
