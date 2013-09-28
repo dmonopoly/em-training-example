@@ -140,8 +140,12 @@ int main() {
   for (int i = 0; i < saved_pABA_results.size(); ++i) {
     cout << saved_pABA_results[i] << " ";
   }
-  cout << endl;
-  cout << "Final " << pABA << ": " << data[pABA.repr()] << endl << endl;
+  cout << endl << endl;
+  cout << "Final " << pABA << ": " << data[pABA.repr()] << endl;
+  cout << "Final " << pAGivenX << ": " << data[pAGivenX.repr()] << endl;
+  cout << "Final " << pBGivenX << ": " << data[pBGivenX.repr()] << endl;
+  cout << "Final " << pAGivenY << ": " << data[pAGivenY.repr()] << endl;
+  cout << "Final " << pBGivenY << ": " << data[pBGivenY.repr()] << endl << endl;
 
   cout << "Determining the best matching tag sequence:\n";
   vector<string> tags = NotationHelper::Individualize(TAG_SEQUENCES[0]);
