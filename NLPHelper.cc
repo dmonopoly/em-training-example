@@ -1,6 +1,31 @@
-#include "Helper.h"
+#include "NLPHelper.h"
+#include "BasicHelper.h"
 
 #define PRINTING_ON false
+
+namespace OutputHelper {
+  void PrintHeader(const vector<Notation> &nots) {
+    vector<string> header;
+    header.push_back("Iteration");
+    for (Notation n : nots)
+      header.push_back(n.repr());
+    Basic::PrintRow(header);
+  }
+
+  void PrintDataRow(int iteration, const vector<Notation> &nots,
+                    const map<string, double> &data) {
+    vector<double> values;
+    values.push_back((double) iteration);
+    for (int i = 0; i < nots.size(); ++i) {
+      try {
+        values.push_back(data.at(nots[i].repr()));
+      } catch (exception &e) {
+        cerr << "No key: " << nots[i].repr() << endl;
+      }
+    }
+    Basic::PrintRow(values);
+  }
+}
 
 namespace NotationHelper {
   vector<string> Individualize(const string &s) {

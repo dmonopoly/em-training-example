@@ -2,7 +2,9 @@
 #define HELPER_H_
 
 #include <cassert>
+#include <cstdlib>
 #include <cmath>
+#include <iomanip>
 #include <map>
 #include <sstream>
 #include <vector>
@@ -10,6 +12,12 @@
 #include "Notation.h"
 
 using namespace std;
+
+namespace OutputHelper {
+  void PrintHeader(const vector<Notation> &nots);
+  void PrintDataRow(int iteration, const vector<Notation> &nots,
+                    const map<string, double> &data);
+}
 
 namespace NotationHelper {
   // Returns a vector of strings of length 1 representing each character in s.

@@ -1,16 +1,17 @@
 #include <cassert>
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <vector>
 
-#include "Helper.h"
+#include "NLPHelper.h"
 #include "Notation.h"
 
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 100
 
 // Two ways to run this program: with a short or a long observed sequence.
-#define DO_SHORT_SEQ false
+#define DO_SHORT_SEQ true
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
 #define GIVEN_DELIM "|"
@@ -30,8 +31,8 @@ const vector<string> OBSERVED_DATA{A, B, A};
 const vector<string> OBSERVED_DATA{A,A,A,B,A,A,B,A,A};
 #endif
 
-// For output.
-vector<double> saved_results;
+// For output. Saves the changing values of pABA (or the longer seq).
+vector<double> saved_obs_seq_probs;
 
 // Known probabilities:
 Notation pX("P", {X});  // "probability of x"
@@ -69,20 +70,24 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pAGivenY.repr(), initVal);
   data->emplace(pBGivenX.repr(), initVal);
   data->emplace(pBGivenY.repr(), initVal);
+
+  // Initial counts can be set to 0.
+  data->emplace(cXA.repr(), 0);
+  data->emplace(cYA.repr(), 0);
+  data->emplace(cXB.repr(), 0);
+  data->emplace(cYB.repr(), 0);
 }
 
 void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
                                const vector<string> &tag_sequences) {
-  saved_results.push_back((*data)[n.repr()]); // push back initial 0
-  cout << "Initially: \n";
-  cout << cXA << ": " << (*data)[cXA.repr()] << endl;
-  cout << cXB << ": " << (*data)[cXB.repr()] << endl;
-  cout << cYA << ": " << (*data)[cYA.repr()] << endl;
-  cout << cYB << ": " << (*data)[cYB.repr()] << endl;
-  cout << n << ": " << (*data)[n.repr()] << endl << endl;
+  saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
+
+  vector<Notation> rowOfNots{cXA, cXB, pAGivenX, pBGivenX, cYA, cYB, pAGivenY,
+    pBGivenY, n};
+  OutputHelper::PrintHeader(rowOfNots);
+  OutputHelper::PrintDataRow(0, rowOfNots, *data);
 
   for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
-    cout << "#" << i+1 << ":\n";
     // Reset counts to zero.
     (*data)[cXA.repr()] = 0;
     (*data)[cXB.repr()] = 0;
@@ -121,29 +126,21 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
     Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
-    cout << "--Summary of iteration " << i+1 << "--\n";
-    cout << cXA << ": " << (*data)[cXA.repr()] << endl;
-    cout << cXB << ": " << (*data)[cXB.repr()] << endl;
-    cout << cYA << ": " << (*data)[cYA.repr()] << endl;
-    cout << cYB << ": " << (*data)[cYB.repr()] << endl;
-    cout << pAGivenX << ": " << (*data)[pAGivenX.repr()] << endl;
-    cout << pBGivenX << ": " << (*data)[pBGivenX.repr()] << endl;
-    cout << pAGivenY << ": " << (*data)[pAGivenY.repr()] << endl;
-    cout << pBGivenY << ": " << (*data)[pBGivenY.repr()] << endl;
-    cout << n << ": " << (*data)[n.repr()] << endl;
-    cout << endl;
-    saved_results.push_back((*data)[n.repr()]);
+    saved_obs_seq_probs.push_back((*data)[n.repr()]);
+    OutputHelper::PrintDataRow(i + 1, rowOfNots, *data);
   }
 }
 
 void OutputResults(map<string, double> &data, Notation n, const vector<string>
                    &tag_sequences) {
-  cout << "--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
-  cout << n << ": ";
-  for (int i = 0; i < saved_results.size(); ++i) {
-    cout << saved_results[i] << " ";
+  cout << "\n--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
+  ofstream fout("observed_data_probabilities.txt");
+  for (int i = 0; i < saved_obs_seq_probs.size(); ++i) {
+    fout << saved_obs_seq_probs[i] << endl;
   }
-  cout << endl << endl;
+  cout << "Values of " << n << " have been written to "
+    "observed_data_probabilities.txt." << endl << endl;
+
   cout << "Final " << n << ": " << data[n.repr()] << endl;
   cout << "Final " << pAGivenX << ": " << data[pAGivenX.repr()] << endl;
   cout << "Final " << pBGivenX << ": " << data[pBGivenX.repr()] << endl;
@@ -158,13 +155,13 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
   for (string seq : tag_sequences) {
     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
-
+    Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
     // Compute P(t|w). Technically not used because divided values seem to
     // incorrectly yield >1 (decimals too small, possibly).
-    Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
     data[pTGivenW.repr()] = data[pTW.repr()] / data[n.repr()];
-    cout << pTW << ": " << data[pTW.repr()] << endl; // ", " << pTGivenW << ": " <<
-    //  data[pTGivenW.repr()] << endl;
+    if (DO_SHORT_SEQ) { // Only print for short seq; long seq has too many.
+      cout << pTW << ": " << data[pTW.repr()] << endl;
+    }
     if (data[pTW.repr()] > data[best_match_string_repr]) {
       best_match_string_repr = pTW.repr();
       delete best_pTGivenW;
