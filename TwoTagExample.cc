@@ -12,7 +12,13 @@
 #define NUMBER_ITERATIONS 100
 
 // Two ways to run this program: with a short or a long observed sequence.
-#define DO_SHORT_SEQ true
+#define DO_SHORT_SEQ false
+
+// Initial values.
+#define INIT_VAL_pAGivenX .5
+#define INIT_VAL_pAGivenY .5
+#define INIT_VAL_pBGivenX .5
+#define INIT_VAL_pBGivenY .5
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
@@ -67,11 +73,10 @@ void PrepareInitialData(map<string, double> *data) {
   data->emplace(pYGivenY.repr(), .1);
 
   // Initial value for unknowns. We improve upon these.
-  double initVal = .5;
-  data->emplace(pAGivenX.repr(), initVal);
-  data->emplace(pAGivenY.repr(), initVal);
-  data->emplace(pBGivenX.repr(), initVal);
-  data->emplace(pBGivenY.repr(), initVal);
+  data->emplace(pAGivenX.repr(), INIT_VAL_pAGivenX);
+  data->emplace(pAGivenY.repr(), INIT_VAL_pAGivenY);
+  data->emplace(pBGivenX.repr(), INIT_VAL_pBGivenX);
+  data->emplace(pBGivenY.repr(), INIT_VAL_pBGivenY);
 
   // Initial counts can be set to 0.
   data->emplace(cXA.repr(), 0);
