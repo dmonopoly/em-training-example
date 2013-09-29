@@ -7,8 +7,9 @@ namespace OutputHelper {
   void PrintHeader(const vector<Notation> &nots) {
     vector<string> header;
     header.push_back("Iteration");
-    for (Notation n : nots)
+    for (Notation n : nots) {
       header.push_back(n.repr());
+    }
     Basic::PrintRow(header);
   }
 

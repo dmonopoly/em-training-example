@@ -65,14 +65,12 @@ template<typename A, typename B, typename C> void Write3(ofstream &fout,
 // Useful printing method for n columns.
 template<typename Container> void PrintRow(const Container &c) {
 	cout << fixed << setprecision(PRECISION) << left << setw(WIDTH);
-  for (typename Container::const_iterator it = c.begin(); it != c.end(); ++it) {
-    if (it != c.end()) {
+  for (typename Container::const_iterator it = c.begin(); it != c.end() - 1;
+      ++it) {
       cout << *it << right << setw(WIDTH);
-    }
   }
   cout << c.back() << endl;
 }
-
 
 // Useful method to convert number to string.
 template <typename T> string NumberToString ( T Number ) {

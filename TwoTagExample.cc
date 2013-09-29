@@ -7,11 +7,13 @@
 #include "NLPHelper.h"
 #include "Notation.h"
 
+/*  SETTINGS  */
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 100
 
 // Two ways to run this program: with a short or a long observed sequence.
 #define DO_SHORT_SEQ true
+/*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
 #define GIVEN_DELIM "|"
