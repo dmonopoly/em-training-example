@@ -49,8 +49,8 @@ template<typename A, typename B> void Print2(const A& a, const B& b) {
 template<typename A, typename B, typename C> void Print3(const A& a, const B& b,
                                                          const C& c) {
 	cout << fixed << setprecision(PRECISION);
-  cout << Tab(1) << left << setw(WIDTH) << a << right << setw(WIDTH) << b << setw(WIDTH)
-    << c << endl;
+  cout << Tab(1) << left << setw(WIDTH) << a << right << setw(WIDTH) << b <<
+    setw(WIDTH) << c << endl;
 }
 
 // Useful writing method for 3 columns, like above.
@@ -58,8 +58,8 @@ template<typename A, typename B, typename C> void Write3(ofstream &fout,
                                                          const A& a, const B& b,
                                                          const C& c) {
 	fout << fixed << setprecision(PRECISION);
-  fout << Tab(1) << left << setw(WIDTH) << a << right << setw(WIDTH) << b << setw(WIDTH)
-    << c << endl;
+  fout << Tab(1) << left << setw(WIDTH) << a << right << setw(WIDTH) << b <<
+    setw(WIDTH) << c << endl;
 }
 
 // Useful printing method for n columns.

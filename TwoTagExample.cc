@@ -15,10 +15,10 @@
 #define DO_SHORT_SEQ false
 
 // Initial values.
-#define INIT_VAL_pAGivenX .5
-#define INIT_VAL_pAGivenY .5
-#define INIT_VAL_pBGivenX .5
-#define INIT_VAL_pBGivenY .5
+#define INIT_VAL_pAGivenX .3
+#define INIT_VAL_pAGivenY .7
+#define INIT_VAL_pBGivenX .3
+#define INIT_VAL_pBGivenY .7
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
