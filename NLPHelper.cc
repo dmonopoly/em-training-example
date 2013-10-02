@@ -1,4 +1,32 @@
-#include "Helper.h"
+#include "NLPHelper.h"
+#include "BasicHelper.h"
+
+#define PRINTING_ON false
+
+namespace OutputHelper {
+  void PrintHeader(const vector<Notation> &nots) {
+    vector<string> header;
+    header.push_back("Iteration");
+    for (Notation n : nots) {
+      header.push_back(n.repr());
+    }
+    Basic::PrintRow(header);
+  }
+
+  void PrintDataRow(int iteration, const vector<Notation> &nots,
+                    const map<string, double> &data) {
+    vector<double> values;
+    values.push_back((double) iteration);
+    for (int i = 0; i < nots.size(); ++i) {
+      try {
+        values.push_back(data.at(nots[i].repr()));
+      } catch (exception &e) {
+        cerr << "No key: " << nots[i].repr() << endl;
+      }
+    }
+    Basic::PrintRow(values);
+  }
+}
 
 namespace NotationHelper {
   vector<string> Individualize(const string &s) {
@@ -13,19 +41,27 @@ namespace NotationHelper {
     return result;
   }
 
+  string Combine(const vector<string> &v) {
+    stringstream ss;
+    for (auto it = v.begin(); it != v.end(); ++it) {
+      ss << *it;
+    }
+    return ss.str();
+  }
+
   string SurroundWithParentheses(const string &predicate, const string &target) {
     return predicate + "(" + target + ")";
   }
 
-  string ConvertPredicate(const Notation &n) {
+  string GetCountKey(const string &s) {
     string result;
-    if (n.repr().find("A") != string::npos && n.repr().find("X"))
+    if (s.find("A") != string::npos && s.find("X") != string::npos)
       result = "cXA";
-    else if (n.repr().find("A") != string::npos && n.repr().find("Y"))
+    else if (s.find("A") != string::npos && s.find("Y") != string::npos)
       result = "cYA";
-    else if (n.repr().find("B") != string::npos && n.repr().find("X"))
+    else if (s.find("B") != string::npos && s.find("X") != string::npos)
       result = "cXB";
-    else if (n.repr().find("B") != string::npos && n.repr().find("Y"))
+    else if (s.find("B") != string::npos && s.find("Y") != string::npos)
       result = "cYB";
     return result;
   }
@@ -62,7 +98,6 @@ namespace Calculator {
       assert(it != data.end() && "wordTagKey was not found");
       double wordTagProb = it->second;
 
-      //cout << tagKey << ": " << tagProb << ", " << wordTagKey << ": " << wordTagProb << endl;
       d *= tagProb;
       d *= wordTagProb;
     }
@@ -93,7 +128,8 @@ namespace Calculator {
       double probOfObservedGivenTagSeq = 1;
       assert(tagSeq.size() == observedNotation.first.size() && "Tag sequence "
           "and observed data sequence are not the same size.");
-      cout << "For tag seq: " << tagSeq << endl;
+      if (PRINTING_ON)
+        cout << "For tag seq: " << tagSeq << endl;
       string prevTag;
       for (int i = 0; i < tagSeq.size(); ++i) {
         string currTag = string(1, tagSeq[i]);
@@ -106,16 +142,38 @@ namespace Calculator {
           probOfTagSeq *= data->at(tagKey);
         }
         prevTag = currTag;
-        cout << tagKey << ": " << data->at(tagKey) << endl;
+        if (PRINTING_ON)
+          cout << tagKey << ": " << data->at(tagKey) << endl;
 
         string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
             observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
-        cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
+        if (PRINTING_ON)
+          cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
         probOfObservedGivenTagSeq *= data->at(obsGivenTagKey);
       }
       sum += probOfTagSeq*probOfObservedGivenTagSeq;
     }
-    cout << "Setting " << observedNotation.repr() << " to " << sum << endl;
+    if (PRINTING_ON)
+      cout << "Setting " << observedNotation.repr() << " to " << sum << endl;
     (*data)[observedNotation.repr()] = sum;
+  }
+}
+
+namespace TagHandler {
+  vector<string> GenerateTagSequences(const vector<string> &tags, int size) {
+    vector<string> list;
+    if (size == 1) {
+      for (string t : tags) {
+        list.push_back(t);
+      }
+    } else {
+      vector<string> tmp = TagHandler::GenerateTagSequences(tags, size - 1);
+      for (string t1 : tags) {
+        for (string t2 : tmp) {
+          list.push_back(t1 + t2);
+        }
+      }
+    }
+    return list;
   }
 }

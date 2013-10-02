@@ -10,12 +10,13 @@ project(${PROJECT_NAME})
 set(CMAKE_CXX_FLAGS "-g -Wall -std=c++11 -stdlib=libc++")
 
 # Libraries & Executables.
-add_library(edge_lib Edge.cc)
-add_library(helper_lib Helper.cc)
+add_library(basic_helper_lib BasicHelper.cc)
+add_library(nlp_helper_lib NLPHelper.cc)
 add_library(notation_lib Notation.cc)
+add_library(edge_lib Edge.cc)
 add_executable(${PROJECT_NAME} TwoTagExample.cc)
 
-target_link_libraries(${PROJECT_NAME} helper_lib notation_lib edge_lib)
+target_link_libraries(${PROJECT_NAME} nlp_helper_lib basic_helper_lib notation_lib edge_lib)
 
 # Testing.
 if (test)

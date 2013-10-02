@@ -5,38 +5,6 @@ const string Notation::AND_DELIM = ",";
 const string Notation::SEQ_DELIM = "";
 const string Notation::NULL_DELIM = "NULL";  // Signifies delim never used.
 
-Notation::Notation() {
-}
-Notation::Notation(string predicate, initializer_list<string> first_args) {
-  this->predicate = predicate;
-  for (string s : first_args)
-    this->first.push_back(s);
-  this->delimiter = Notation::NULL_DELIM;
-  this->first_delimiter = Notation::SEQ_DELIM;
-  this->second_delimiter = Notation::NULL_DELIM;
-}
-Notation::Notation(string predicate, vector<string> first) {
-  this->predicate = predicate;
-  this->first = first;
-  this->delimiter = Notation::NULL_DELIM;
-  this->first_delimiter = Notation::SEQ_DELIM;
-  this->second_delimiter = Notation::NULL_DELIM;
-}
-Notation::Notation(string predicate, initializer_list<string> first_args, string first_delim) {
-  this->predicate = predicate;
-  for (string s : first_args)
-    this->first.push_back(s);
-  this->delimiter = Notation::NULL_DELIM;
-  this->first_delimiter = first_delim;
-  this->second_delimiter = Notation::NULL_DELIM;
-}
-Notation::Notation(string predicate, vector<string> first, string first_delim) {
-  this->predicate = predicate;
-  this->first = first;
-  this->delimiter = Notation::NULL_DELIM;
-  this->first_delimiter = first_delim;
-  this->second_delimiter = Notation::NULL_DELIM;
-}
 Notation::Notation(string predicate, initializer_list<string> first_args,
            string delimiter, initializer_list<string> second_args) {
   this->predicate = predicate;
@@ -46,8 +14,9 @@ Notation::Notation(string predicate, initializer_list<string> first_args,
   for (string s : second_args)
     this->second.push_back(s);
   this->first_delimiter = Notation::SEQ_DELIM;
-  this->second_delimiter = Notation::SEQ_DELIM;
+  this->second_delimiter = Notation::AND_DELIM;
 }
+
 Notation::Notation(string predicate, vector<string> first, string delimiter,
                    vector<string> second) {
   this->predicate = predicate;
@@ -55,7 +24,7 @@ Notation::Notation(string predicate, vector<string> first, string delimiter,
   this->delimiter = delimiter;
   this->second = second;
   this->first_delimiter = Notation::SEQ_DELIM;
-  this->second_delimiter = Notation::SEQ_DELIM;
+  this->second_delimiter = Notation::AND_DELIM;
 }
 
 string Notation::repr() const {
@@ -76,6 +45,6 @@ string Notation::repr() const {
 }
 
 ostream& operator<<(ostream& out, const Notation& n) {
-    return out << n.repr();
+  return out << n.repr();
 }
 

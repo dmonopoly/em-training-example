@@ -2,7 +2,9 @@
 #define HELPER_H_
 
 #include <cassert>
+#include <cstdlib>
 #include <cmath>
+#include <iomanip>
 #include <map>
 #include <sstream>
 #include <vector>
@@ -13,10 +15,21 @@
 
 using namespace std;
 
+namespace OutputHelper {
+  void PrintHeader(const vector<Notation> &nots);
+  void PrintDataRow(int iteration, const vector<Notation> &nots,
+                    const map<string, double> &data);
+}
+
 namespace NotationHelper {
+  // Returns a vector of strings of length 1 representing each character in s.
   vector<string> Individualize(const string &s);
+  // Returns a string that is the concatentation of all strings in v.
+  string Combine(const vector<string> &v);
   string SurroundWithParentheses(const string &predicate, const string &target);
-  string ConvertPredicate(const Notation &n);
+  // Ad hoc way to get count key, like cXA, from some string that has e.g. X and
+  // A in it. Presumably the string param is some edge representation.
+  string GetCountKey(const string &s);
 }
 
 namespace GraphHelper {
@@ -26,7 +39,10 @@ namespace GraphHelper {
 // Notation Calculator methods that use the map of calculations.
 namespace Calculator {
   // Pre: Notation object's 'first' and 'second' values have same length.
-  // Post: Normalized probability.
+  // 'first' represents the observed data; 'second', the proposed data
+  // completion. Essentially, P(t, w), with AND.
+  // Post: Normalized probability for the data completion represented by
+  // Notation n - i.e., P(t, w).
   double ComputeNormalizedProbability(const Notation &n, const map<string,
       double> &data, const int &tag_list_size, const int &observed_data_size);
 
@@ -36,7 +52,7 @@ namespace Calculator {
   // of observed data | tags). cn is like C(X, A), so cn.first has size 2, and
   // cn.second has size 0.  Uses pn (prob notation) and cn (count notation) to
   // check if factor needed. 
-  // Post: Returns the normalized probability*number of matches. e.g., 216*2. 
+  // Post: Returns the normalized probability*number of matches. e.g., .216*2. 
   double NormProbFactor(const double &normalizedProb, const Notation &pn, const
       Notation &cn);
 
@@ -46,6 +62,11 @@ namespace Calculator {
   // P(t1,t2,t3)P(ABA|t1,t2,t3).
   void UpdateProbOfObsDataSeq(const Notation &observedNotation, map<string,
       double> *data, const vector<string> &tagSequences);
+}
+
+namespace TagHandler {
+  // Generates all possible tag sequences for the brute force method.
+  vector<string> GenerateTagSequences(const vector<string> &tags, int size);
 }
 
 #endif

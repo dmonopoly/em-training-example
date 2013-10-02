@@ -6,7 +6,7 @@
 
 #include "Node.h"
 #include "Notation.h"
-#include "Helper.h"
+#include "NLPHelper.h"
 
 using namespace std;
 
