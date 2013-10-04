@@ -43,8 +43,8 @@ namespace Calculator {
   // completion. Essentially, P(t, w), with AND.
   // Post: Normalized probability for the data completion represented by
   // Notation n - i.e., P(t, w).
-  double ComputeNormalizedProbability(const Notation &n, const map<string,
-      double> &data, const int &tag_list_size, const int &observed_data_size);
+  double ComputeUnnormalizedProbability(const Notation &n, const map<string,
+      double> &data);
 
   // Part of brute force method:
   // Pre: pn's 'first' and 'second' values have same length. pn is like

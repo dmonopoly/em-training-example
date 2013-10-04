@@ -11,18 +11,20 @@
 #include "Edge.h"
 
 /*  SETTINGS  */
+#define USE_FORWARD_BACKWARD false
+
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 100
 
+// Initial values.
+// #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
+// #define INIT_VAL_pAGivenY .3  // Best case for long seq: .3
+#define INIT_VAL_pAGivenX .5
+#define INIT_VAL_pAGivenY .5
+
 // Two ways to run this program: with a short or a long observed sequence.
 // Applies only to brute force method.
-#define DO_SHORT_SEQ false
-
-// Initial values.
-#define INIT_VAL_pAGivenX .3
-#define INIT_VAL_pAGivenY .7
-#define INIT_VAL_pBGivenX .3
-#define INIT_VAL_pBGivenY .7
+#define DO_SHORT_SEQ true
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
@@ -37,7 +39,9 @@ const string Y = "Y";
 const string A = "A";
 const string B = "B";
 const vector<string> TAG_LIST{X, Y};
-#if DO_SHORT_SEQ
+#if USE_FORWARD_BACKWARD  // TODO....
+const vector<string> OBSERVED_DATA{A, B, A};
+#elif DO_SHORT_SEQ
 const vector<string> OBSERVED_DATA{A, B, A};
 #else
 const vector<string> OBSERVED_DATA{A,A,A,B,A,A,B,A,A};
@@ -80,9 +84,9 @@ void PrepareInitialData(map<string, double> *data) {
 
   // Initial value for unknowns. We improve upon these.
   data->emplace(pAGivenX.repr(), INIT_VAL_pAGivenX);
+  data->emplace(pBGivenX.repr(), 1 - INIT_VAL_pAGivenX);
   data->emplace(pAGivenY.repr(), INIT_VAL_pAGivenY);
-  data->emplace(pBGivenX.repr(), INIT_VAL_pBGivenX);
-  data->emplace(pBGivenY.repr(), INIT_VAL_pBGivenY);
+  data->emplace(pBGivenY.repr(), 1 - INIT_VAL_pAGivenY);
 
   // Initial counts can be set to 0.
   data->emplace(cXA.repr(), 0);
@@ -108,22 +112,36 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
     (*data)[cYB.repr()] = 0;
 
     // Get norm P(t,w) and counts.
+    double sum_of_all_pTW = 0;  // Use this as divisor in normalization.
     for (string seq : tag_sequences) {
       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
-      double normalizedProb = Calculator::ComputeNormalizedProbability(pTW,
-          *data, TAG_LIST.size(), OBSERVED_DATA.size());
-      (*data)[pTW.repr()] = normalizedProb;
+      double unnormalized_prob = Calculator::ComputeUnnormalizedProbability(pTW,
+          *data);
+      sum_of_all_pTW += unnormalized_prob;
+      (*data)[pTW.repr()] = unnormalized_prob;
+    }
+    for (string seq : tag_sequences) {
+      vector<string> tags = NotationHelper::Individualize(seq);
+      Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
+
+      // Update counts with *normalized* values. We can also, while we have
+      // access to these values, store P(tag sequence|observation seq) (like
+      // P(YXY|ABA)), which is P(obs seq \cap tag seq) / P(obs seq). Note that
+      // P(obs seq) by total probability is sum_of_all_pTW.
+      double normalized_prob = (*data)[pTW.repr()]/sum_of_all_pTW;
+      Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
+      (*data)[pTGivenW.repr()] = normalized_prob;
 
       // Get counts.
-      (*data)[cXA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
+      (*data)[cXA.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
           cXA);
       (*data)[cXB.repr()] +=
-        Calculator::NormProbFactor(normalizedProb, pTW, cXB);
-      (*data)[cYA.repr()] += Calculator::NormProbFactor(normalizedProb, pTW,
+        Calculator::NormProbFactor(normalized_prob, pTW, cXB);
+      (*data)[cYA.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
           cYA);
       (*data)[cYB.repr()] +=
-        Calculator::NormProbFactor(normalizedProb, pTW, cYB);
+        Calculator::NormProbFactor(normalized_prob, pTW, cYB);
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
@@ -164,27 +182,28 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
   vector<string> tags = NotationHelper::Individualize(tag_sequences.at(0));
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
   Notation *best_pTGivenW = NULL;
-  string best_match_string_repr = pTW_first.repr();
+  string best_match_pTAndW_key = pTW_first.repr();
+  string best_match_pTGivenW_key;
   for (string seq : tag_sequences) {
     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
     Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
-    // Compute P(t|w). Technically not used because divided values seem to
-    // incorrectly yield >1 (decimals too small, possibly).
-    data[pTGivenW.repr()] = data[pTW.repr()] / data[n.repr()];
+
     if (DO_SHORT_SEQ) { // Only print for short seq; long seq has too many.
-      cout << pTW << ": " << data[pTW.repr()] << endl;
+      cout << pTW << ": " << data[pTW.repr()] << ", " << pTGivenW << ": " <<
+        data[pTGivenW.repr()] << endl;
     }
-    if (data[pTW.repr()] > data[best_match_string_repr]) {
-      best_match_string_repr = pTW.repr();
+    if (data[pTW.repr()] > data[best_match_pTAndW_key]) {
+      best_match_pTAndW_key = pTW.repr();
+      best_match_pTGivenW_key = pTGivenW.repr();
       delete best_pTGivenW;
-      // Same as pTGivenW.
+      // Same as pTGivenW. Saved for future reference.
       best_pTGivenW = new Notation("P", tags, GIVEN_DELIM, OBSERVED_DATA);
     }
   }
-  string pTAndWRepr = best_match_string_repr;
-  cout << "The highest probability found belongs to " << pTAndWRepr << ": " <<
-    data[pTAndWRepr] << endl;
+  cout << "The highest probability found belongs to " << best_match_pTAndW_key
+    << ": " << data[best_match_pTAndW_key] << ", " << best_match_pTGivenW_key << ": " <<
+    data[best_match_pTGivenW_key] << endl;
   cout << "The best matching tag sequence is " <<
     NotationHelper::Combine(best_pTGivenW->first) << endl;
   delete best_pTGivenW;
@@ -193,7 +212,7 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
 // Warning: Creates data on heap. Call DestroyTrellis after done.
 // Post: 'nodes' points to a vector where [0] is the start node, back() is the
 // end, and the vector lists the nodes in topological order. 'edges' points to a
-// vector of corresponding edges.
+// vector of corresponding edges. **Nodes and edges are in topological order!**.
 void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Edge *> *all_edges) {
   Node *start_node = new Node("start", 0);
   nodes->push_back(start_node);
@@ -240,31 +259,35 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Ed
   Edge *pXGivenY_edge2 = new Edge(pXGivenY, yb2second, xa1third);
   all_edges->push_back(pXGivenY_edge2);
 
-  // Across the top.
+  // Alternating between across the top and across the bottom. This order is
+  // important when determining alpha and beta values in the f and b passes.
   Edge *pAGivenX_edge = new Edge(pAGivenX, xa1first, xa2first);
   all_edges->push_back(pAGivenX_edge);
-  Edge *pXGivenX_edge = new Edge(pXGivenX, xa2first, xb1second);
-  all_edges->push_back(pXGivenX_edge);
-  Edge *pBGivenX_edge = new Edge(pBGivenX, xb1second, xb2second);
-  all_edges->push_back(pBGivenX_edge);
-  Edge *pXGivenX_edge2 = new Edge(pXGivenX, xb2second, xa1third);
-  all_edges->push_back(pXGivenX_edge2);
-  Edge *pAGivenX_edge2 = new Edge(pAGivenX, xa1third, xa2third);
-  all_edges->push_back(pAGivenX_edge2);
-
-  // Across the bottom.
   Edge *pAGivenY_edge = new Edge(pAGivenY, ya1first, ya2first);
   all_edges->push_back(pAGivenY_edge);
+
+  Edge *pXGivenX_edge = new Edge(pXGivenX, xa2first, xb1second);
+  all_edges->push_back(pXGivenX_edge);
   Edge *pYGivenY_edge = new Edge(pYGivenY, ya2first, yb1second);
   all_edges->push_back(pYGivenY_edge);
+
+  Edge *pBGivenX_edge = new Edge(pBGivenX, xb1second, xb2second);
+  all_edges->push_back(pBGivenX_edge);
   Edge *pBGivenY_edge = new Edge(pBGivenY, yb1second, yb2second);
   all_edges->push_back(pBGivenY_edge);
+
+  Edge *pXGivenX_edge2 = new Edge(pXGivenX, xb2second, xa1third);
+  all_edges->push_back(pXGivenX_edge2);
   Edge *pYGivenY_edge2 = new Edge(pYGivenY, yb2second, ya1third);
   all_edges->push_back(pYGivenY_edge2);
+
+  Edge *pAGivenX_edge2 = new Edge(pAGivenX, xa1third, xa2third);
+  all_edges->push_back(pAGivenX_edge2);
   Edge *pAGivenY_edge2 = new Edge(pAGivenY, ya1third, ya2third);
   all_edges->push_back(pAGivenY_edge2);
 
-  // To the end point.
+  // To the end point. It is important that these have probability 1 for the
+  // passes.
   Edge *x_last_edge = new Edge(p1, xa2third, end_node);
   all_edges->push_back(x_last_edge);
   Edge *y_last_edge = new Edge(p1, ya2third, end_node);
@@ -286,9 +309,11 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
   }
 }
 
-void ForwardBackwardCompute(const vector<Node *> &nodes, 
+void ForwardBackwardCompute(const vector<Node *> &nodes,
                             const vector<Edge *> &select_edges,
                             map<string, double> *data) {
+  // Important precondition: The order of nodes/edges is already in topological
+  // order!
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
 
@@ -297,8 +322,8 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
       OBSERVED_DATA.size());
 
-  // Set start node alpha value to 1.
   alpha[nodes.at(0)->repr()] = 1;
+  beta[nodes.at(nodes.size() - 1)->repr()] = 1;
 
   // Forward pass. Assumes start node is at i = 0.
   for (int i = 1; i < nodes.size(); ++i) {
@@ -309,13 +334,23 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
     alpha[nodes[i]->repr()] = sum;
   }
 
-  // Backward pass. TODO.
+  // Backward pass. Assumes end node is at i = size - 1.
+  for (int i = nodes.size() - 2; i >= 0; --i) {
+    double sum = 0;
+    for (Edge *e : nodes[i]->child_edges) {
+      sum += beta[e->dest->repr()] * data->at(e->repr());
+    }
+    beta[nodes[i]->repr()] = sum;
+  }
 
   // Counting pass. First reset and then update the counts.
-  (*data)[cXA.repr()] = 0;
-  (*data)[cXB.repr()] = 0;
   // need cAY too?
   for (int i = 0; i < select_edges.size(); ++i) {
+    (*data)[cXA.repr()] = 0;
+    (*data)[cXB.repr()] = 0;
+    (*data)[cYA.repr()] = 0;
+    (*data)[cYB.repr()] = 0;
+
     Edge *e = select_edges[i];
     string count_key = NotationHelper::GetCountKey(e->repr());
     cout << "Getting count key " << count_key << " from " << e->repr() << endl;
@@ -355,7 +390,7 @@ void RunBruteForceEM() {
     OutputResults(data, pLong, tag_sequences);
   }
   t = clock() - t;
-  cout << "--Timing Results--\n";
+  cout << "\n--Timing Results--\n";
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
 }
 
@@ -372,14 +407,16 @@ void RunEfficientEM() {
   t = clock();
   ForwardBackwardCompute(nodes, edges_to_update, &data);
   t = clock() - t;
-  
+
   cout << "--Timing Results--\n";
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
   DestroyTrellis(&nodes, &all_edges);
 }
 
 int main() {
-  RunBruteForceEM();
-  //RunEfficientEM();
+  if (USE_FORWARD_BACKWARD)
+    RunEfficientEM();
+  else
+    RunBruteForceEM();
   return 0;
 }

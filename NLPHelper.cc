@@ -76,8 +76,8 @@ namespace GraphHelper {
 }
 
 namespace Calculator {
-  double ComputeNormalizedProbability(const Notation &n, const map<string,
-      double> &data, const int &tag_list_size, const int &observed_data_size) {
+  double ComputeUnnormalizedProbability(const Notation &n, const map<string,
+                                        double> &data) {
     double d = 1;
     for (int i = 0; i < n.second.size(); ++i) {
       string tagKey;
@@ -101,7 +101,8 @@ namespace Calculator {
       d *= tagProb;
       d *= wordTagProb;
     }
-    return d*pow(tag_list_size, observed_data_size);
+    assert(d < 1 && "Unnormalized probability is too high.");
+    return d;
   }
 
   double NormProbFactor(const double &normalizedProb, const Notation &pn, const
