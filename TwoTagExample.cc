@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 
+#include "BasicHelper.h"
 #include "NLPHelper.h"
 #include "Notation.h"
 #include "Node.h"
@@ -232,7 +233,7 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Ed
       nodes->push_back(n2);
       if (topol_index == 1) {
         Notation notation_obj("P", {TAG_LIST[j]});
-        Edge *e = new Edge(notation_obj, p, n1);
+        Edge *e = new Edge(notation_obj, start_node, n1);
         all_edges->push_back(e);
       } else {
         for (Node *p : prev_nodes) {
@@ -284,56 +285,58 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   alpha[nodes.at(0)->repr()] = 1;
   beta[nodes.at(nodes.size() - 1)->repr()] = 1;
 
-  // Forward pass. Assumes start node is at i = 0.
-  for (int i = 1; i < nodes.size(); ++i) {
-    double sum = 0;
-    for (Edge *e : nodes[i]->parent_edges) {
-      sum += alpha[e->src->repr()] * data->at(e->repr());
+  for (int a = 0; a < 1; ++a) {//NUMBER_ITERATIONS; ++a) {
+    // Forward pass. Assumes start node is at i = 0.
+    for (int i = 1; i < nodes.size(); ++i) {
+      double sum = 0;
+      for (Edge *e : nodes[i]->parent_edges) {
+        sum += alpha[e->src->repr()] * data->at(e->repr());
+      }
+      alpha[nodes[i]->repr()] = sum;
     }
-    alpha[nodes[i]->repr()] = sum;
-  }
 
-  // Backward pass. Assumes end node is at i = size - 1.
-  for (int i = nodes.size() - 2; i >= 0; --i) {
-    double sum = 0;
-    for (Edge *e : nodes[i]->child_edges) {
-      sum += beta[e->dest->repr()] * data->at(e->repr());
+    // Backward pass. Assumes end node is at i = size - 1.
+    for (int i = nodes.size() - 2; i >= 0; --i) {
+      double sum = 0;
+      for (Edge *e : nodes[i]->child_edges) {
+        sum += beta[e->dest->repr()] * data->at(e->repr());
+      }
+      beta[nodes[i]->repr()] = sum;
     }
-    beta[nodes[i]->repr()] = sum;
-  }
 
-  // Counting pass. First reset and then update the counts.
-  // need cAY too?
-  for (int i = 0; i < select_edges.size(); ++i) {
-    (*data)[cXA.repr()] = 0;
-    (*data)[cXB.repr()] = 0;
-    (*data)[cYA.repr()] = 0;
-    (*data)[cYB.repr()] = 0;
+    // Counting pass. First reset and then update the counts.
+    // need cAY too?
+    for (int i = 0; i < select_edges.size(); ++i) {
+      (*data)[cXA.repr()] = 0;
+      (*data)[cXB.repr()] = 0;
+      (*data)[cYA.repr()] = 0;
+      (*data)[cYB.repr()] = 0;
 
-    Edge *e = select_edges[i];
-    string count_key = NotationHelper::GetCountKey(e->repr());
-    cout << "Getting count key " << count_key << " from " << e->repr() << endl;
-    (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
-                           * beta[e->dest->repr()]) / alpha[nodes.back()->repr()];
-  }
+      Edge *e = select_edges[i];
+      string count_key = NotationHelper::GetCountKey(e->repr());
+      cout << "Getting count key " << count_key << " from " << e->repr() << endl;
+      (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
+                             * beta[e->dest->repr()]) / alpha[nodes.back()->repr()];
+    }
 
-  // Update the unknown probabilities that we want to find. Use them in the
-  // next iteration.
-  (*data)[pAGivenX.repr()] = (*data)[cXA.repr()]/( (*data)[cXA.repr()] +
-      (*data)[cXB.repr()] );
-  (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
-      (*data)[cXA.repr()] );
+    // Update the unknown probabilities that we want to find. Use them in the
+    // next iteration.
+    (*data)[pAGivenX.repr()] = (*data)[cXA.repr()]/( (*data)[cXA.repr()] +
+        (*data)[cXB.repr()] );
+    (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
+        (*data)[cXA.repr()] );
 
-  if (OBSERVED_DATA.size() <= 3) {
-    vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
-        OBSERVED_DATA.size());
+    if (OBSERVED_DATA.size() <= 3) {
+      vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+          OBSERVED_DATA.size());
 
-    // The ultimate value we want to maximize. This should increase with each
-    // iteration.
-    Calculator::UpdateProbOfObsDataSeq(pABA, data, tag_sequences);
-    cout << cXA << ": " << (*data)[cXA.repr()] << endl;
-    cout << cXB << ": " << (*data)[cXB.repr()] << endl;
-    cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+      // The ultimate value we want to maximize. This should increase with each
+      // iteration.
+      Calculator::UpdateProbOfObsDataSeq(pABA, data, tag_sequences);
+      cout << cXA << ": " << (*data)[cXA.repr()] << endl;
+      cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+      cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+    }
   }
 }
 
