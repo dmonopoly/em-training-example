@@ -11,7 +11,7 @@ using namespace std;
 struct Edge;
 
 struct Node {
-  string name;
+  string name;  // Useful name accessible in repr().
   int index;  // Topological ordering index.
   vector<Edge *> parent_edges;
   vector<Edge *> child_edges;
@@ -21,9 +21,6 @@ struct Node {
   }
   string repr() {
     return this->name;
-  }
-  void set_name(const string &other) {
-    this->name = other;
   }
 };
 

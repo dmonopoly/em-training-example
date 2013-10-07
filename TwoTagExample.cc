@@ -11,7 +11,7 @@
 #include "Edge.h"
 
 /*  SETTINGS  */
-#define USE_FORWARD_BACKWARD false
+#define USE_FORWARD_BACKWARD true
 
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 100
@@ -22,8 +22,7 @@
 #define INIT_VAL_pAGivenX .5
 #define INIT_VAL_pAGivenY .5
 
-// Two ways to run this program: with a short or a long observed sequence.
-// Applies only to brute force method.
+// Applies only to brute force method:
 #define DO_SHORT_SEQ true
 /*  END SETTINGS  */
 
@@ -39,9 +38,7 @@ const string Y = "Y";
 const string A = "A";
 const string B = "B";
 const vector<string> TAG_LIST{X, Y};
-#if USE_FORWARD_BACKWARD  // TODO....
-const vector<string> OBSERVED_DATA{A, B, A};
-#elif DO_SHORT_SEQ
+#if DO_SHORT_SEQ
 const vector<string> OBSERVED_DATA{A, B, A};
 #else
 const vector<string> OBSERVED_DATA{A,A,A,B,A,A,B,A,A};
@@ -209,94 +206,61 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
   delete best_pTGivenW;
 }
 
-// Warning: Creates data on heap. Call DestroyTrellis after done.
+// WARNING: Creates data on heap. Call DestroyTrellis after done.
 // Post: 'nodes' points to a vector where [0] is the start node, back() is the
 // end, and the vector lists the nodes in topological order. 'edges' points to a
 // vector of corresponding edges. **Nodes and edges are in topological order!**.
 void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Edge *> *all_edges) {
-  Node *start_node = new Node("start", 0);
+  // Store the last column of nodes to add links to in prev_nodes. Accumulate
+  // the next set of prev_nodes in fugure_prev_nodes.
+  vector<Node *> prev_nodes, future_prev_nodes;
+
+  Node *start_node = new Node("start node", 0);
   nodes->push_back(start_node);
-  Node *xa1first = new Node("xa1first", 1);
-  nodes->push_back(xa1first);
-  Node *ya1first = new Node("ya1first", 1);
-  nodes->push_back(ya1first);
-  Node *xa2first = new Node("xa2first", 2);
-  nodes->push_back(xa2first);
-  Node *ya2first = new Node("ya2first", 2);
-  nodes->push_back(ya2first);
-  Node *xb1second = new Node("xb1second", 3);
-  nodes->push_back(xb1second);
-  Node *yb1second = new Node("yb1second", 3);
-  nodes->push_back(yb1second);
-  Node *xb2second = new Node("xb2second", 4);
-  nodes->push_back(xb2second);
-  Node *yb2second = new Node("yb2second", 4);
-  nodes->push_back(yb2second);
-  Node *xa1third = new Node("xa1third", 5);
-  nodes->push_back(xa1third);
-  Node *ya1third = new Node("ya1third", 5);
-  nodes->push_back(ya1third);
-  Node *xa2third = new Node("xa2third", 6);
-  nodes->push_back(xa2third);
-  Node *ya2third = new Node("ya2third", 6);
-  nodes->push_back(ya2third);
-  Node *end_node = new Node("end", 7);
-  nodes->push_back(end_node);
 
-  // From the start point.
-  Edge *pX_edge = new Edge(pX, start_node, xa1first);
-  all_edges->push_back(pX_edge);
-  Edge *pY_edge = new Edge(pY, start_node, ya1first);
-  all_edges->push_back(pY_edge);
-
-  // The diagonals.
-  Edge *pYGivenX_edge = new Edge(pYGivenX, xa2first, yb1second);
-  all_edges->push_back(pYGivenX_edge);
-  Edge *pXGivenY_edge = new Edge(pXGivenY, ya2first, xb1second);
-  all_edges->push_back(pXGivenY_edge);
-  Edge *pYGivenX_edge2 = new Edge(pYGivenX, xb2second, ya1third);
-  all_edges->push_back(pYGivenX_edge2);
-  Edge *pXGivenY_edge2 = new Edge(pXGivenY, yb2second, xa1third);
-  all_edges->push_back(pXGivenY_edge2);
-
-  // Alternating between across the top and across the bottom. This order is
-  // important when determining alpha and beta values in the f and b passes.
-  Edge *pAGivenX_edge = new Edge(pAGivenX, xa1first, xa2first);
-  all_edges->push_back(pAGivenX_edge);
-  Edge *pAGivenY_edge = new Edge(pAGivenY, ya1first, ya2first);
-  all_edges->push_back(pAGivenY_edge);
-
-  Edge *pXGivenX_edge = new Edge(pXGivenX, xa2first, xb1second);
-  all_edges->push_back(pXGivenX_edge);
-  Edge *pYGivenY_edge = new Edge(pYGivenY, ya2first, yb1second);
-  all_edges->push_back(pYGivenY_edge);
-
-  Edge *pBGivenX_edge = new Edge(pBGivenX, xb1second, xb2second);
-  all_edges->push_back(pBGivenX_edge);
-  Edge *pBGivenY_edge = new Edge(pBGivenY, yb1second, yb2second);
-  all_edges->push_back(pBGivenY_edge);
-
-  Edge *pXGivenX_edge2 = new Edge(pXGivenX, xb2second, xa1third);
-  all_edges->push_back(pXGivenX_edge2);
-  Edge *pYGivenY_edge2 = new Edge(pYGivenY, yb2second, ya1third);
-  all_edges->push_back(pYGivenY_edge2);
-
-  Edge *pAGivenX_edge2 = new Edge(pAGivenX, xa1third, xa2third);
-  all_edges->push_back(pAGivenX_edge2);
-  Edge *pAGivenY_edge2 = new Edge(pAGivenY, ya1third, ya2third);
-  all_edges->push_back(pAGivenY_edge2);
+  int topol_index = 1;
+  for (int i = 0; i < OBSERVED_DATA.size(); ++i)  {
+    future_prev_nodes.clear();
+    cout << "obs " << OBSERVED_DATA[i] << "--\n";
+    for (int j = 0; j < TAG_LIST.size(); ++j) {
+      cout << Basic::Tab(1) << "tag " << OBSERVED_DATA[i] << "--\n";
+      // Encode the name of the current tag for each node. This name is used for
+      // the notation object created soon after this.
+      Node *n1 = new Node(TAG_LIST[j], topol_index);
+      Node *n2 = new Node(TAG_LIST[j], topol_index + 1);
+      nodes->push_back(n1);
+      nodes->push_back(n2);
+      if (topol_index == 1) {
+        Notation notation_obj("P", {TAG_LIST[j]});
+        Edge *e = new Edge(notation_obj, p, n1);
+        all_edges->push_back(e);
+      } else {
+        for (Node *p : prev_nodes) {
+          Notation notation_obj("P", {TAG_LIST[j]}, GIVEN_DELIM,
+              {p->repr()});
+          cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
+          Edge *e = new Edge(notation_obj, p, n1);
+          all_edges->push_back(e);
+        }
+      }
+      future_prev_nodes.push_back(n2);
+      Notation notation_obj("P", {OBSERVED_DATA[i]}, GIVEN_DELIM,
+          {TAG_LIST[j]});
+      Edge *e = new Edge(notation_obj, n1, n2);
+      select_edges->push_back(e);
+      all_edges->push_back(e);
+    }
+    topol_index += 2;
+    prev_nodes = future_prev_nodes;
+  }
 
   // To the end point. It is important that these have probability 1 for the
-  // passes.
-  Edge *x_last_edge = new Edge(p1, xa2third, end_node);
-  all_edges->push_back(x_last_edge);
-  Edge *y_last_edge = new Edge(p1, ya2third, end_node);
-  all_edges->push_back(y_last_edge);
-
-  select_edges->push_back(pAGivenX_edge);
-  select_edges->push_back(pAGivenY_edge);
-  select_edges->push_back(pBGivenX_edge);
-  select_edges->push_back(pBGivenY_edge);
+  Node *end_node = new Node("end node", topol_index);
+  nodes->push_back(end_node);
+  for (Node *p : prev_nodes) {
+    Edge *e = new Edge(p1, p, end_node);
+    all_edges->push_back(e);
+  }
 }
 
 void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
@@ -316,11 +280,6 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   // order!
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
-
-  assert(OBSERVED_DATA.size() == 3 && "Generating wrong sized tag sequence for "
-      "forward-backward. Should only be the small ABA sequence.");
-  vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
-      OBSERVED_DATA.size());
 
   alpha[nodes.at(0)->repr()] = 1;
   beta[nodes.at(nodes.size() - 1)->repr()] = 1;
@@ -365,12 +324,17 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
       (*data)[cXA.repr()] );
 
-  // The ultimate value we want to maximize. This should increase with each
-  // iteration.
-  Calculator::UpdateProbOfObsDataSeq(pABA, data, tag_sequences);
-  cout << cXA << ": " << (*data)[cXA.repr()] << endl;
-  cout << cXB << ": " << (*data)[cXB.repr()] << endl;
-  cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+  if (OBSERVED_DATA.size() <= 3) {
+    vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+        OBSERVED_DATA.size());
+
+    // The ultimate value we want to maximize. This should increase with each
+    // iteration.
+    Calculator::UpdateProbOfObsDataSeq(pABA, data, tag_sequences);
+    cout << cXA << ": " << (*data)[cXA.repr()] << endl;
+    cout << cXB << ": " << (*data)[cXB.repr()] << endl;
+    cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+  }
 }
 
 void RunBruteForceEM() {
