@@ -97,7 +97,6 @@ void PrepareInitialData(map<string, double> *data) {
 void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
                                const vector<string> &tag_sequences) {
   saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
-
   vector<Notation> rowOfNots{cXA, cXB, pAGivenX, pBGivenX, cYA, cYB, pAGivenY,
     pBGivenY, n};
   OutputHelper::PrintHeader(rowOfNots);
@@ -303,11 +302,19 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
   }
 }
 
-void ForwardBackwardCompute(const vector<Node *> &nodes,
+void ForwardBackwardCompute(Notation n, const vector<Node *> &nodes,
                             const vector<Edge *> &select_edges,
                             map<string, double> *data) {
   if (EXTRA_PRINTING)
     cout << "Beginning Forward-Backward." << endl;
+
+
+  saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
+  vector<Notation> rowOfNots{cXA, cXB, pAGivenX, pBGivenX, cYA, cYB, pAGivenY,
+    pBGivenY, n};
+  OutputHelper::PrintHeader(rowOfNots);
+  OutputHelper::PrintDataRow(0, rowOfNots, *data);
+
   // Important precondition: The order of nodes/edges is already in topological
   // order!
   map<string, double> alpha;  // Sum of all paths from start state to this node.
@@ -316,7 +323,7 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
   alpha[nodes.at(0)->repr()] = 1;
   beta[nodes.at(nodes.size() - 1)->repr()] = 1;
 
-  for (int a = 0; a < 1; ++a) {//NUMBER_ITERATIONS; ++a) {
+  for (int iter_count = 0; iter_count < 1; ++iter_count) {//NUMBER_ITERATIONS; ++iter_count) {
     // Forward pass. Assumes start node is at i = 0.
     for (int i = 1; i < nodes.size(); ++i) {
       double sum = 0;
@@ -366,11 +373,16 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
     }
 
     if (EXTRA_PRINTING) {
-      cout << endl << Basic::Tab(1) << "'Given' probabilities: " << endl <<
+      cout << endl << Basic::Tab(1) << "'Given' X probabilities: " << endl <<
         Basic::Tab(1) << (*data)[cXA.repr()] << "/" << ( (*data)[cXA.repr()] +
         (*data)[cXB.repr()] ) << 
         Basic::Tab(1) << (*data)[cXB.repr()] << "/" << ( (*data)[cXB.repr()] +
         (*data)[cXB.repr()] );
+      cout << endl << Basic::Tab(1) << "'Given' Y probabilities: " << endl <<
+        Basic::Tab(1) << (*data)[cYA.repr()] << "/" << ( (*data)[cYA.repr()] +
+        (*data)[cYB.repr()] ) << 
+        Basic::Tab(1) << (*data)[cYB.repr()] << "/" << ( (*data)[cYB.repr()] +
+        (*data)[cYB.repr()] );
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
@@ -378,27 +390,25 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
         (*data)[cXB.repr()] );
     (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
         (*data)[cXA.repr()] );
-    // TODO: add y
     (*data)[pAGivenY.repr()] = (*data)[cYA.repr()]/( (*data)[cYA.repr()] +
         (*data)[cYB.repr()] );
     (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
         (*data)[cYA.repr()] );
 
-    if (OBSERVED_DATA.size() <= 3) {
-      if (EXTRA_PRINTING)
-        cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
-      vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
-          OBSERVED_DATA.size());
+    if (EXTRA_PRINTING)
+      cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
 
-      // The ultimate value we want to maximize. This should increase with each
-      // iteration.
-      Calculator::UpdateProbOfObsDataSeq(pABA, data, tag_sequences);
-      cout << Basic::Tab(1) << cXA << ": " << (*data)[cXA.repr()] << endl;
-      cout << Basic::Tab(1) << cXB << ": " << (*data)[cXB.repr()] << endl;
-      cout << Basic::Tab(1) << pABA << ": " << (*data)[pABA.repr()] << endl;
-    }
+    vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+        OBSERVED_DATA.size());
+
+    // The ultimate value we want to maximize. This should increase with each
+    // iteration.
+    Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
+    saved_obs_seq_probs.push_back((*data)[n.repr()]);
+    OutputHelper::PrintDataRow(iter_count, rowOfNots, *data);
   }
-  cout << "Done with Forward-Backward." << endl;
+  if (EXTRA_PRINTING)
+    cout << "Done with Forward-Backward." << endl;
 }
 
 void RunBruteForceEM() {
@@ -437,12 +447,13 @@ void RunEfficientEM() {
 
   clock_t t;
   t = clock();
-  ForwardBackwardCompute(nodes, edges_to_update, &data);
   if (DO_SHORT_SEQ) {
     cout << "Short sequence: " << endl;
+    ForwardBackwardCompute(pABA, nodes, edges_to_update, &data);
     OutputResults(data, pABA, tag_sequences);
   } else {
     cout << "Long sequence: " << endl;
+    ForwardBackwardCompute(pLong, nodes, edges_to_update, &data);
     OutputResults(data, pLong, tag_sequences);
   }
   t = clock() - t;
