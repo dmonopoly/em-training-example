@@ -13,6 +13,7 @@
 
 /*  SETTINGS  */
 #define USE_FORWARD_BACKWARD true
+#define EXTRA_PRINTING true
 
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 30
@@ -214,6 +215,8 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
 // vector of corresponding edges. **Nodes and edges are in topological order!**.
 void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
                   vector<Edge *> *all_edges) {
+  if (EXTRA_PRINTING)
+    cout << "Building trellis." << endl;
   // Store the last column of nodes to add links to in prev_nodes. Accumulate
   // the next set of prev_nodes in fugure_prev_nodes.
   vector<Node *> prev_nodes, future_prev_nodes;
@@ -224,7 +227,8 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
   int topol_index = 1;
   for (int i = 0; i < OBSERVED_DATA.size(); ++i)  {
     future_prev_nodes.clear();
-    cout << "obs " << OBSERVED_DATA[i] << "--\n";
+    if (EXTRA_PRINTING)
+      cout << "obs " << OBSERVED_DATA[i] << "--\n";
     for (int j = 0; j < TAG_LIST.size(); ++j) {
       cout << Basic::Tab(1) << "tag " << TAG_LIST[j] << "--\n";
       // Encode the current tag at name[0] for each node. This name is used for
@@ -237,8 +241,10 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
       ss.clear(); ss.str("");
       ss << TAG_LIST[j] << i << j << "second";
       Node *n2 = new Node(ss.str(), topol_index + 1);
-      cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
-      cout << Basic::Tab(2) << "node name: " << n2->repr() << endl;
+      if (EXTRA_PRINTING) {
+        cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
+        cout << Basic::Tab(2) << "node name: " << n2->repr() << endl;
+      }
       nodes->push_back(n1);
       nodes->push_back(n2);
       if (topol_index == 1) {
@@ -247,10 +253,12 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
         all_edges->push_back(e);
       } else {
         for (Node *p : prev_nodes) {
-          cout << Basic::Tab(2) << "retrieving last tag: " << p->repr()[0] << endl;
+          if (EXTRA_PRINTING)
+            cout << Basic::Tab(2) << "retrieving last tag: " << p->repr()[0] << endl;
           Notation notation_obj("P", {TAG_LIST[j]}, GIVEN_DELIM,
               {p->repr().substr(0, 1)});  // Retrieve name[0], which stores the last tag.
-          cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
+          if (EXTRA_PRINTING)
+            cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
           Edge *e = new Edge(notation_obj, p, n1);
           all_edges->push_back(e);
         }
@@ -275,12 +283,14 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
   }
 
   if (DO_SHORT_SEQ) {
-    cout << "Running tests..." << endl;
+    cout << "Running tests for short sequence..." << endl;
     assert(all_edges->size() == 18 && "Incorrect number of edges");
     assert(select_edges->size() == 6 && "Incorrect number of edges");
     assert(nodes->size() == 14 && "Incorrect number of nodes");
     cout << "Trellis size seems okay." << endl;
   }
+  if (EXTRA_PRINTING)
+    cout << "Done building trellis." << endl;
 }
 
 void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
@@ -296,6 +306,8 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
 void ForwardBackwardCompute(const vector<Node *> &nodes,
                             const vector<Edge *> &select_edges,
                             map<string, double> *data) {
+  if (EXTRA_PRINTING)
+    cout << "Beginning Forward-Backward." << endl;
   // Important precondition: The order of nodes/edges is already in topological
   // order!
   map<string, double> alpha;  // Sum of all paths from start state to this node.
@@ -311,8 +323,13 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
       for (Edge *e : nodes[i]->parent_edges) {
         sum += alpha[e->src->repr()] * data->at(e->repr());
       }
+      if (EXTRA_PRINTING)
+        cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() << ": " << sum << endl;
       alpha[nodes[i]->repr()] = sum;
     }
+
+    if (EXTRA_PRINTING)
+      cout << endl;
 
     // Backward pass. Assumes end node is at i = size - 1.
     for (int i = nodes.size() - 2; i >= 0; --i) {
@@ -320,43 +337,68 @@ void ForwardBackwardCompute(const vector<Node *> &nodes,
       for (Edge *e : nodes[i]->child_edges) {
         sum += beta[e->dest->repr()] * data->at(e->repr());
       }
+      if (EXTRA_PRINTING)
+        cout << Basic::Tab(1) << "Beta value for " << nodes[i]->repr() << ": " << sum << endl;
       beta[nodes[i]->repr()] = sum;
     }
 
-    // Counting pass. First reset and then update the counts.
-    // need cAY too?
-    for (int i = 0; i < select_edges.size(); ++i) {
-      (*data)[cXA.repr()] = 0;
-      (*data)[cXB.repr()] = 0;
-      (*data)[cYA.repr()] = 0;
-      (*data)[cYB.repr()] = 0;
+    if (EXTRA_PRINTING)
+      cout << endl;
 
+    // Counting pass. First reset and then update the counts.
+    (*data)[cXA.repr()] = 0;
+    (*data)[cXB.repr()] = 0;
+    (*data)[cYA.repr()] = 0;
+    (*data)[cYB.repr()] = 0;
+    for (int i = 0; i < select_edges.size(); ++i) {
       Edge *e = select_edges[i];
-      string count_key = NotationHelper::GetCountKey(e->repr());
-      cout << "Getting count key " << count_key << " from " << e->repr() << endl;
+      string count_key = NotationHelper::GetCountKeyFromEdgeRepr(e->repr());
+      if (EXTRA_PRINTING) {
+        cout << Basic::Tab(1) << "e's repr: " << e->repr() << endl;
+        cout << Basic::Tab(1) << "Getting count key " << count_key << " from " << e->repr() << endl;
+        cout << Basic::Tab(1) << alpha[e->src->repr()] << "<  >" << data->at(e->repr()) << endl;
+        cout << Basic::Tab(1) << beta[e->dest->repr()] << "[ ]" << alpha[nodes.back()->repr()] << endl;
+      }
+
       (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
                              * beta[e->dest->repr()]) / alpha[nodes.back()->repr()];
+      cout << Basic::Tab(1) << "new val for " << count_key << ": " << (*data)[count_key] << endl;
     }
 
+    if (EXTRA_PRINTING) {
+      cout << endl << Basic::Tab(1) << "'Given' probabilities: " << endl <<
+        Basic::Tab(1) << (*data)[cXA.repr()] << "/" << ( (*data)[cXA.repr()] +
+        (*data)[cXB.repr()] ) << 
+        Basic::Tab(1) << (*data)[cXB.repr()] << "/" << ( (*data)[cXB.repr()] +
+        (*data)[cXB.repr()] );
+    }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
     (*data)[pAGivenX.repr()] = (*data)[cXA.repr()]/( (*data)[cXA.repr()] +
         (*data)[cXB.repr()] );
     (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
         (*data)[cXA.repr()] );
+    // TODO: add y
+    (*data)[pAGivenY.repr()] = (*data)[cYA.repr()]/( (*data)[cYA.repr()] +
+        (*data)[cYB.repr()] );
+    (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
+        (*data)[cYA.repr()] );
 
     if (OBSERVED_DATA.size() <= 3) {
+      if (EXTRA_PRINTING)
+        cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
       vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
           OBSERVED_DATA.size());
 
       // The ultimate value we want to maximize. This should increase with each
       // iteration.
       Calculator::UpdateProbOfObsDataSeq(pABA, data, tag_sequences);
-      cout << cXA << ": " << (*data)[cXA.repr()] << endl;
-      cout << cXB << ": " << (*data)[cXB.repr()] << endl;
-      cout << pABA << ": " << (*data)[pABA.repr()] << endl;
+      cout << Basic::Tab(1) << cXA << ": " << (*data)[cXA.repr()] << endl;
+      cout << Basic::Tab(1) << cXB << ": " << (*data)[cXB.repr()] << endl;
+      cout << Basic::Tab(1) << pABA << ": " << (*data)[pABA.repr()] << endl;
     }
   }
+  cout << "Done with Forward-Backward." << endl;
 }
 
 void RunBruteForceEM() {

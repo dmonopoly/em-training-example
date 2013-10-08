@@ -1,7 +1,7 @@
 #include "NLPHelper.h"
 #include "BasicHelper.h"
 
-#define PRINTING_ON false
+#define EXTRA_PRINTING false
 
 namespace OutputHelper {
   void PrintHeader(const vector<Notation> &nots) {
@@ -53,16 +53,17 @@ namespace NotationHelper {
     return predicate + "(" + target + ")";
   }
 
-  string GetCountKey(const string &s) {
+  string GetCountKeyFromEdgeRepr(const string &s) {
     string result;
+    // TODO: use proper delimiter?
     if (s.find("A") != string::npos && s.find("X") != string::npos)
-      result = "cXA";
+      result = "C(X,A)";
     else if (s.find("A") != string::npos && s.find("Y") != string::npos)
-      result = "cYA";
+      result = "C(Y,A)";
     else if (s.find("B") != string::npos && s.find("X") != string::npos)
-      result = "cXB";
+      result = "C(X,B)";
     else if (s.find("B") != string::npos && s.find("Y") != string::npos)
-      result = "cYB";
+      result = "C(Y,B)";
     return result;
   }
 }
@@ -129,7 +130,7 @@ namespace Calculator {
       double probOfObservedGivenTagSeq = 1;
       assert(tagSeq.size() == observedNotation.first.size() && "Tag sequence "
           "and observed data sequence are not the same size.");
-      if (PRINTING_ON)
+      if (EXTRA_PRINTING)
         cout << "For tag seq: " << tagSeq << endl;
       string prevTag;
       for (int i = 0; i < tagSeq.size(); ++i) {
@@ -143,18 +144,18 @@ namespace Calculator {
           probOfTagSeq *= data->at(tagKey);
         }
         prevTag = currTag;
-        if (PRINTING_ON)
+        if (EXTRA_PRINTING)
           cout << tagKey << ": " << data->at(tagKey) << endl;
 
         string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
             observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
-        if (PRINTING_ON)
+        if (EXTRA_PRINTING)
           cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
         probOfObservedGivenTagSeq *= data->at(obsGivenTagKey);
       }
       sum += probOfTagSeq*probOfObservedGivenTagSeq;
     }
-    if (PRINTING_ON)
+    if (EXTRA_PRINTING)
       cout << "Setting " << observedNotation.repr() << " to " << sum << endl;
     (*data)[observedNotation.repr()] = sum;
   }

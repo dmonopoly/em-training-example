@@ -27,9 +27,10 @@ namespace NotationHelper {
   // Returns a string that is the concatentation of all strings in v.
   string Combine(const vector<string> &v);
   string SurroundWithParentheses(const string &predicate, const string &target);
-  // Ad hoc way to get count key, like cXA, from some string that has e.g. X and
-  // A in it. Presumably the string param is some edge representation.
-  string GetCountKey(const string &s);
+  // Ad hoc, perhaps overly specific method to get count key, like "C(X,A)",
+  // from some string like "P(X|A)" (just checks for X and A in it). Presumably
+  // the string param is some edge representation.
+  string GetCountKeyFromEdgeRepr(const string &s);
 }
 
 namespace GraphHelper {
