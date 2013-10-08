@@ -15,7 +15,7 @@
 #define USE_FORWARD_BACKWARD true
 
 // The number of iterations to do the EM training.
-#define NUMBER_ITERATIONS 100
+#define NUMBER_ITERATIONS 30
 
 // Initial values.
 // #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
@@ -199,6 +199,7 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
       best_pTGivenW = new Notation("P", tags, GIVEN_DELIM, OBSERVED_DATA);
     }
   }
+  
   cout << "The highest probability found belongs to " << best_match_pTAndW_key
     << ": " << data[best_match_pTAndW_key] << ", " << best_match_pTGivenW_key << ": " <<
     data[best_match_pTGivenW_key] << endl;
@@ -211,7 +212,8 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
 // Post: 'nodes' points to a vector where [0] is the start node, back() is the
 // end, and the vector lists the nodes in topological order. 'edges' points to a
 // vector of corresponding edges. **Nodes and edges are in topological order!**.
-void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Edge *> *all_edges) {
+void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
+                  vector<Edge *> *all_edges) {
   // Store the last column of nodes to add links to in prev_nodes. Accumulate
   // the next set of prev_nodes in fugure_prev_nodes.
   vector<Node *> prev_nodes, future_prev_nodes;
@@ -224,11 +226,19 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Ed
     future_prev_nodes.clear();
     cout << "obs " << OBSERVED_DATA[i] << "--\n";
     for (int j = 0; j < TAG_LIST.size(); ++j) {
-      cout << Basic::Tab(1) << "tag " << OBSERVED_DATA[i] << "--\n";
-      // Encode the name of the current tag for each node. This name is used for
-      // the notation object created soon after this.
-      Node *n1 = new Node(TAG_LIST[j], topol_index);
-      Node *n2 = new Node(TAG_LIST[j], topol_index + 1);
+      cout << Basic::Tab(1) << "tag " << TAG_LIST[j] << "--\n";
+      // Encode the current tag at name[0] for each node. This name is used for
+      // the notation object created soon after this. We add other parts to
+      // guarantee uniqueness (so we avoid collisions) since the names are used
+      // as keys in the alpha and beta of Forward-Backward.
+      stringstream ss;
+      ss << TAG_LIST[j] << i << j << "first";
+      Node *n1 = new Node(ss.str(), topol_index);
+      ss.clear(); ss.str("");
+      ss << TAG_LIST[j] << i << j << "second";
+      Node *n2 = new Node(ss.str(), topol_index + 1);
+      cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
+      cout << Basic::Tab(2) << "node name: " << n2->repr() << endl;
       nodes->push_back(n1);
       nodes->push_back(n2);
       if (topol_index == 1) {
@@ -237,8 +247,9 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Ed
         all_edges->push_back(e);
       } else {
         for (Node *p : prev_nodes) {
+          cout << Basic::Tab(2) << "retrieving last tag: " << p->repr()[0] << endl;
           Notation notation_obj("P", {TAG_LIST[j]}, GIVEN_DELIM,
-              {p->repr()});
+              {p->repr().substr(0, 1)});  // Retrieve name[0], which stores the last tag.
           cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
           Edge *e = new Edge(notation_obj, p, n1);
           all_edges->push_back(e);
@@ -261,6 +272,14 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges, vector<Ed
   for (Node *p : prev_nodes) {
     Edge *e = new Edge(p1, p, end_node);
     all_edges->push_back(e);
+  }
+
+  if (DO_SHORT_SEQ) {
+    cout << "Running tests..." << endl;
+    assert(all_edges->size() == 18 && "Incorrect number of edges");
+    assert(select_edges->size() == 6 && "Incorrect number of edges");
+    assert(nodes->size() == 14 && "Incorrect number of nodes");
+    cout << "Trellis size seems okay." << endl;
   }
 }
 
@@ -362,10 +381,14 @@ void RunBruteForceEM() {
 }
 
 void RunEfficientEM() {
+  cout << "Running Efficient EM." << endl;
   map<string, double> data;  // Storage for probabilities and counts.
   vector<Node *> nodes;
   vector<Edge *> edges_to_update;
   vector<Edge *> all_edges; // for deletion later
+
+  vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+      OBSERVED_DATA.size());
 
   PrepareInitialData(&data);
   BuildTrellis(&nodes, &edges_to_update, &all_edges);
@@ -373,10 +396,17 @@ void RunEfficientEM() {
   clock_t t;
   t = clock();
   ForwardBackwardCompute(nodes, edges_to_update, &data);
+  if (DO_SHORT_SEQ) {
+    cout << "Short sequence: " << endl;
+    OutputResults(data, pABA, tag_sequences);
+  } else {
+    cout << "Long sequence: " << endl;
+    OutputResults(data, pLong, tag_sequences);
+  }
   t = clock() - t;
-
-  cout << "--Timing Results--\n";
+  cout << "\n--Timing Results--\n";
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
+
   DestroyTrellis(&nodes, &all_edges);
 }
 

@@ -11,7 +11,7 @@ using namespace std;
 struct Edge;
 
 struct Node {
-  string name;  // Useful name accessible in repr().
+  string name;  // Useful name accessible in repr(), used as key in maps.
   int index;  // Topological ordering index.
   vector<Edge *> parent_edges;
   vector<Edge *> child_edges;
