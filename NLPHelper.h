@@ -39,6 +39,7 @@ namespace GraphHelper {
 
 // Notation Calculator methods that use the map of calculations.
 namespace Calculator {
+  // Part of brute force method:
   // Pre: Notation object's 'first' and 'second' values have same length.
   // 'first' represents the observed data; 'second', the proposed data
   // completion. Essentially, P(t, w), with AND.
@@ -57,6 +58,7 @@ namespace Calculator {
   double NormProbFactor(const double &normalizedProb, const Notation &pn, const
       Notation &cn);
 
+  // Usable by both brute force and efficient EM:
   // Pre: Notation is like P(ABA) (empty second list), and data has
   // appropriate key-value pairs set.
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}

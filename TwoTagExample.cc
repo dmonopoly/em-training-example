@@ -13,7 +13,7 @@
 
 /*  SETTINGS  */
 #define USE_FORWARD_BACKWARD true
-#define EXTRA_PRINTING true
+#define EXTRA_PRINTING false
 
 // The number of iterations to do the EM training.
 #define NUMBER_ITERATIONS 30
@@ -200,11 +200,17 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
     }
   }
   
-  cout << "The highest probability found belongs to " << best_match_pTAndW_key
-    << ": " << data[best_match_pTAndW_key] << ", " << best_match_pTGivenW_key << ": " <<
-    data[best_match_pTGivenW_key] << endl;
-  cout << "The best matching tag sequence is " <<
-    NotationHelper::Combine(best_pTGivenW->first) << endl;
+  if (!USE_FORWARD_BACKWARD) {
+    cout << "The highest probability found belongs to " << best_match_pTAndW_key
+      << ": " << data[best_match_pTAndW_key] << ", " << best_match_pTGivenW_key <<
+      ": " << data[best_match_pTGivenW_key] << endl;
+    cout << "The best matching tag sequence is " <<
+      NotationHelper::Combine(best_pTGivenW->first) << endl;
+  } else {
+    // TODO
+    cout << "The highest probability found belongs to " << best_match_pTAndW_key
+      << endl;
+  }
   delete best_pTGivenW;
 }
 
@@ -229,7 +235,8 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
     if (EXTRA_PRINTING)
       cout << "obs " << OBSERVED_DATA[i] << "--\n";
     for (int j = 0; j < TAG_LIST.size(); ++j) {
-      cout << Basic::Tab(1) << "tag " << TAG_LIST[j] << "--\n";
+      if (EXTRA_PRINTING)
+        cout << Basic::Tab(1) << "tag " << TAG_LIST[j] << "--\n";
       // Encode the current tag at name[0] for each node. This name is used for
       // the notation object created soon after this. We add other parts to
       // guarantee uniqueness (so we avoid collisions) since the names are used
@@ -282,11 +289,9 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
   }
 
   if (DO_SHORT_SEQ) {
-    cout << "Running tests for short sequence..." << endl;
     assert(all_edges->size() == 18 && "Incorrect number of edges");
     assert(select_edges->size() == 6 && "Incorrect number of edges");
     assert(nodes->size() == 14 && "Incorrect number of nodes");
-    cout << "Trellis size seems okay." << endl;
   }
   if (EXTRA_PRINTING)
     cout << "Done building trellis." << endl;
@@ -302,13 +307,11 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
   }
 }
 
-void ForwardBackwardCompute(Notation n, const vector<Node *> &nodes,
+void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
                             const vector<Edge *> &select_edges,
                             map<string, double> *data) {
   if (EXTRA_PRINTING)
     cout << "Beginning Forward-Backward." << endl;
-
-
   saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
   vector<Notation> rowOfNots{cXA, cXB, pAGivenX, pBGivenX, cYA, cYB, pAGivenY,
     pBGivenY, n};
@@ -319,22 +322,21 @@ void ForwardBackwardCompute(Notation n, const vector<Node *> &nodes,
   // order!
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
-
   alpha[nodes.at(0)->repr()] = 1;
   beta[nodes.at(nodes.size() - 1)->repr()] = 1;
-
-  for (int iter_count = 0; iter_count < 1; ++iter_count) {//NUMBER_ITERATIONS; ++iter_count) {
+  for (int iter_count = 0; iter_count < NUMBER_ITERATIONS; ++iter_count) {
     // Forward pass. Assumes start node is at i = 0.
     for (int i = 1; i < nodes.size(); ++i) {
       double sum = 0;
       for (Edge *e : nodes[i]->parent_edges) {
         sum += alpha[e->src->repr()] * data->at(e->repr());
       }
-      if (EXTRA_PRINTING)
-        cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() << ": " << sum << endl;
+      if (EXTRA_PRINTING){
+        cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() << ": "
+          << sum << endl;
+      }
       alpha[nodes[i]->repr()] = sum;
     }
-
     if (EXTRA_PRINTING)
       cout << endl;
 
@@ -344,8 +346,10 @@ void ForwardBackwardCompute(Notation n, const vector<Node *> &nodes,
       for (Edge *e : nodes[i]->child_edges) {
         sum += beta[e->dest->repr()] * data->at(e->repr());
       }
-      if (EXTRA_PRINTING)
-        cout << Basic::Tab(1) << "Beta value for " << nodes[i]->repr() << ": " << sum << endl;
+      if (EXTRA_PRINTING) {
+        cout << Basic::Tab(1) << "Beta value for " << nodes[i]->repr() << ": "
+          << sum << endl;
+      }
       beta[nodes[i]->repr()] = sum;
     }
 
@@ -369,9 +373,7 @@ void ForwardBackwardCompute(Notation n, const vector<Node *> &nodes,
 
       (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
                              * beta[e->dest->repr()]) / alpha[nodes.back()->repr()];
-      cout << Basic::Tab(1) << "new val for " << count_key << ": " << (*data)[count_key] << endl;
     }
-
     if (EXTRA_PRINTING) {
       cout << endl << Basic::Tab(1) << "'Given' X probabilities: " << endl <<
         Basic::Tab(1) << (*data)[cXA.repr()] << "/" << ( (*data)[cXA.repr()] +
@@ -395,20 +397,22 @@ void ForwardBackwardCompute(Notation n, const vector<Node *> &nodes,
     (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
         (*data)[cYA.repr()] );
 
-    if (EXTRA_PRINTING)
-      cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
-
     vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
         OBSERVED_DATA.size());
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
+    if (EXTRA_PRINTING)
+      cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
     Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
     saved_obs_seq_probs.push_back((*data)[n.repr()]);
     OutputHelper::PrintDataRow(iter_count, rowOfNots, *data);
   }
   if (EXTRA_PRINTING)
-    cout << "Done with Forward-Backward." << endl;
+    cout << "Done with Forward-Backward. Proceeding to Viterbi." << endl;
+
+  // TODO
+//   Viterbi(alpha, beta, data);
 }
 
 void RunBruteForceEM() {
@@ -432,8 +436,9 @@ void RunBruteForceEM() {
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
 }
 
-void RunEfficientEM() {
-  cout << "Running Efficient EM." << endl;
+void RunForwardBackwardAndViterbi() {
+  if (EXTRA_PRINTING)
+    cout << "Running Efficient EM." << endl;
   map<string, double> data;  // Storage for probabilities and counts.
   vector<Node *> nodes;
   vector<Edge *> edges_to_update;
@@ -448,12 +453,14 @@ void RunEfficientEM() {
   clock_t t;
   t = clock();
   if (DO_SHORT_SEQ) {
-    cout << "Short sequence: " << endl;
-    ForwardBackwardCompute(pABA, nodes, edges_to_update, &data);
+    if (EXTRA_PRINTING)
+      cout << "Short sequence: " << endl;
+    ForwardBackwardAndViterbi(pABA, nodes, edges_to_update, &data);
     OutputResults(data, pABA, tag_sequences);
   } else {
-    cout << "Long sequence: " << endl;
-    ForwardBackwardCompute(pLong, nodes, edges_to_update, &data);
+    if (EXTRA_PRINTING)
+      cout << "Long sequence: " << endl;
+    ForwardBackwardAndViterbi(pLong, nodes, edges_to_update, &data);
     OutputResults(data, pLong, tag_sequences);
   }
   t = clock() - t;
@@ -465,7 +472,7 @@ void RunEfficientEM() {
 
 int main() {
   if (USE_FORWARD_BACKWARD)
-    RunEfficientEM();
+    RunForwardBackwardAndViterbi();
   else
     RunBruteForceEM();
   return 0;

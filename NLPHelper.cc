@@ -85,8 +85,8 @@ namespace Calculator {
       if (i == 0)
         tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i]);
       else {
-        tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i] + Notation::GIVEN_DELIM +
-            n.second[i-1]); 
+        tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i] +
+            Notation::GIVEN_DELIM + n.second[i-1]); 
       }
       string wordTagKey = NotationHelper::SurroundWithParentheses("P", n.first[i] +
           Notation::GIVEN_DELIM + n.second[i]);
