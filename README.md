@@ -1,5 +1,6 @@
 ## What is this?
-A brute-force implementation of Expectation-Maximation (EM) training.
+Implementations of brute force EM, forward-backward EM, and Viterbi to find
+the best matching tag sequence for a simple observation of sequence.
 Based on Kevin Knight's classnotes for CSCI 662 (Advanced NLP), p73:
 http://d.pr/i/ADyl
 

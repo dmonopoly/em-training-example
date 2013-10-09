@@ -307,6 +307,10 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
   }
 }
 
+void Viterbi(map<string, double> *data) {
+
+}
+
 void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
                             const vector<Edge *> &select_edges,
                             map<string, double> *data) {
@@ -318,7 +322,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   OutputHelper::PrintHeader(rowOfNots);
   OutputHelper::PrintDataRow(0, rowOfNots, *data);
 
-  // Important precondition: The order of nodes/edges is already in topological
+  // PRECONDITION: The order of nodes/edges is already in topological
   // order!
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
@@ -412,7 +416,12 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
     cout << "Done with Forward-Backward. Proceeding to Viterbi." << endl;
 
   // TODO
-//   Viterbi(alpha, beta, data);
+  // By this point, P(A|X), P(A|Y), etc. have been maximized thanks to using
+  // alpha and beta values in the forward-backward passes. The counting pass
+  // collected fractional counts of e.g. C(X|A), which were then used to update
+  // the "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to
+  // find the highest-probability path based on the collected probabilities.
+//   Viterbi(data);
 }
 
 void RunBruteForceEM() {
