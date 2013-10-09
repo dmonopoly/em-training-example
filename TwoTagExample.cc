@@ -214,10 +214,14 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
   delete best_pTGivenW;
 }
 
-// WARNING: Creates data on heap. Call DestroyTrellis after done.
-// Post: 'nodes' points to a vector where [0] is the start node, back() is the
-// end, and the vector lists the nodes in topological order. 'edges' points to a
-// vector of corresponding edges. **Nodes and edges are in topological order!**.
+// WARNING: Creates data on heap. Call DestroyTrellis when done.
+// Post: 'nodes' points to a vector where front() is the start node, back() is
+// the end, and the vector lists the nodes in topological order. For each node,
+// name.substr(0, 1) is the tag; name.substr(1, 1) is the observed word (all
+// chars following index 0 in the name string are garbage, only there to
+// guarantee uniqueness).  'edges' points to a vector of corresponding edges
+// with representations like P(A|X). **Nodes and edges are in topological
+// order!**.
 void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
                   vector<Edge *> *all_edges) {
   if (EXTRA_PRINTING)
@@ -240,12 +244,13 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
       // Encode the current tag at name[0] for each node. This name is used for
       // the notation object created soon after this. We add other parts to
       // guarantee uniqueness (so we avoid collisions) since the names are used
-      // as keys in the alpha and beta of Forward-Backward.
+      // as keys in the alpha and beta of Forward-Backward. At name[1], we
+      // encode the observed data sequence, useful for Viterbi.
       stringstream ss;
-      ss << TAG_LIST[j] << i << j << "first";
+      ss << TAG_LIST[j] << OBSERVED_DATA[i] << i << j << "first";
       Node *n1 = new Node(ss.str(), topol_index);
       ss.clear(); ss.str("");
-      ss << TAG_LIST[j] << i << j << "second";
+      ss << TAG_LIST[j] << OBSERVED_DATA[i] << i << j << "second";
       Node *n2 = new Node(ss.str(), topol_index + 1);
       if (EXTRA_PRINTING) {
         cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
@@ -308,11 +313,15 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
 }
 
 void Viterbi(map<string, double> *data) {
+  // Key: string representation of edge; Value: optimal/best value so far.
+  map<string, double> opt; // or for nodes?
 
+  // TODO: use nodes[i].name.substr(1,1) and (0,1)
 }
 
 void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
                             const vector<Edge *> &select_edges,
+                            const vector<Edge *> &all_edges,
                             map<string, double> *data) {
   if (EXTRA_PRINTING)
     cout << "Beginning Forward-Backward." << endl;
@@ -421,7 +430,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   // collected fractional counts of e.g. C(X|A), which were then used to update
   // the "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to
   // find the highest-probability path based on the collected probabilities.
-//   Viterbi(data);
+//   Viterbi(data, all_edges);
 }
 
 void RunBruteForceEM() {
@@ -464,12 +473,12 @@ void RunForwardBackwardAndViterbi() {
   if (DO_SHORT_SEQ) {
     if (EXTRA_PRINTING)
       cout << "Short sequence: " << endl;
-    ForwardBackwardAndViterbi(pABA, nodes, edges_to_update, &data);
+    ForwardBackwardAndViterbi(pABA, nodes, edges_to_update, all_edges, &data);
     OutputResults(data, pABA, tag_sequences);
   } else {
     if (EXTRA_PRINTING)
       cout << "Long sequence: " << endl;
-    ForwardBackwardAndViterbi(pLong, nodes, edges_to_update, &data);
+    ForwardBackwardAndViterbi(pLong, nodes, edges_to_update, all_edges, &data);
     OutputResults(data, pLong, tag_sequences);
   }
   t = clock() - t;
