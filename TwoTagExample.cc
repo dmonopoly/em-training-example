@@ -160,7 +160,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
   }
 }
 
-void OutputResults(map<string, double> &data, Notation n, const vector<string>
+void OutputResultsForBruteForce(map<string, double> &data, Notation n, const vector<string>
                    &tag_sequences) {
   cout << "\n--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
   ofstream fout("observed_data_probabilities.txt");
@@ -200,17 +200,11 @@ void OutputResults(map<string, double> &data, Notation n, const vector<string>
     }
   }
   
-  if (!USE_FORWARD_BACKWARD) {
-    cout << "The highest probability found belongs to " << best_match_pTAndW_key
-      << ": " << data[best_match_pTAndW_key] << ", " << best_match_pTGivenW_key <<
-      ": " << data[best_match_pTGivenW_key] << endl;
-    cout << "The best matching tag sequence is " <<
-      NotationHelper::Combine(best_pTGivenW->first) << endl;
-  } else {
-    // TODO
-    cout << "The highest probability found belongs to " << best_match_pTAndW_key
-      << endl;
-  }
+  cout << "The highest probability found belongs to " << best_match_pTAndW_key
+    << ": " << data[best_match_pTAndW_key] << ", " << best_match_pTGivenW_key <<
+    ": " << data[best_match_pTGivenW_key] << endl;
+  cout << "The best matching tag sequence is " <<
+    NotationHelper::Combine(best_pTGivenW->first) << endl;
   delete best_pTGivenW;
 }
 
@@ -230,7 +224,7 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
   // the next set of prev_nodes in fugure_prev_nodes.
   vector<Node *> prev_nodes, future_prev_nodes;
 
-  Node *start_node = new Node("start node", 0);
+  Node *start_node = new Node("START_NODE", 0);
   nodes->push_back(start_node);
 
   int topol_index = 1;
@@ -245,7 +239,9 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
       // the notation object created soon after this. We add other parts to
       // guarantee uniqueness (so we avoid collisions) since the names are used
       // as keys in the alpha and beta of Forward-Backward. At name[1], we
-      // encode the observed data sequence, useful for Viterbi.
+      // encode the observed data sequence, useful for Viterbi. Note that
+      // 'first' and 'second' are useful for retrieving the 'sister' node if you
+      // only have one.
       stringstream ss;
       ss << TAG_LIST[j] << OBSERVED_DATA[i] << i << j << "first";
       Node *n1 = new Node(ss.str(), topol_index);
@@ -286,7 +282,7 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
   }
 
   // To the end point. It is important that these have probability 1 for the
-  Node *end_node = new Node("end node", topol_index);
+  Node *end_node = new Node("END_NODE", topol_index);
   nodes->push_back(end_node);
   for (Node *p : prev_nodes) {
     Edge *e = new Edge(p1, p, end_node);
@@ -312,11 +308,48 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
   }
 }
 
-void Viterbi(map<string, double> *data) {
-  // Key: string representation of edge; Value: optimal/best value so far.
-  map<string, double> opt; // or for nodes?
+void Viterbi(map<string, double> *data, const vector<Node *> &nodes) {
+  // Key: string representation of node; Value: optimal/best value so far.
+  map<string, double> opt;
+  // Key: string representation of node; Value: previous node string repr.
+  map<string, string> best_path;
 
-  // TODO: use nodes[i].name.substr(1,1) and (0,1)
+  // Set all nodes except start to default low value.
+  for (Node *n : nodes) {
+    opt.emplace(n->repr(), 0);
+  }
+  opt[nodes.front()->repr()] = 1;
+
+  // Run through trellis. Topological order assumed.
+  for (int i = 0; i < nodes.size(); ++i) {
+    Node *current_node = nodes.at(i);
+    for (Edge *e : current_node->child_edges) {
+      Node *next = e->dest;
+      double new_val = opt.at(current_node->repr()) * (*data)[e->repr()];
+      if (new_val > opt.at(next->repr())) {
+        opt[next->repr()] = new_val;
+        best_path[next->repr()] = current_node->repr();
+      }
+    }
+  }
+
+  // Output best result following backpointer map.
+  vector<string> best_tag_seq;
+  vector<string> assoc_word_seq;
+  string next_node_repr = nodes.back()->repr();
+  for (int i = 0; i < OBSERVED_DATA.size(); ++i) {
+    string name = best_path.at(next_node_repr);
+    string tag = name.substr(0, 1);
+    string word = name.substr(1, 1);
+    best_tag_seq.push_back(tag);
+    assoc_word_seq.push_back(word);
+    next_node_repr = best_path.at(name); // Skip sister node.
+  }
+  cout << "Viterbi results: " << endl;
+  for (int i = best_tag_seq.size() - 1; i >= 0; --i) {
+    cout << best_tag_seq.at(i);
+  }
+  cout << endl;
 }
 
 void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
@@ -424,13 +457,12 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   if (EXTRA_PRINTING)
     cout << "Done with Forward-Backward. Proceeding to Viterbi." << endl;
 
-  // TODO
-  // By this point, P(A|X), P(A|Y), etc. have been maximized thanks to using
-  // alpha and beta values in the forward-backward passes. The counting pass
-  // collected fractional counts of e.g. C(X|A), which were then used to update
-  // the "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to
-  // find the highest-probability path based on the collected probabilities.
-//   Viterbi(data, all_edges);
+  // By this point, P(A|X), P(A|Y), etc. have been maximized thanks to alpha and
+  // beta values in the forward-backward passes. The counting pass collected
+  // fractional counts of e.g. C(X|A), which were then used to update the
+  // "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to find
+  // the highest-probability path based on the collected probabilities.
+  Viterbi(data, nodes);
 }
 
 void RunBruteForceEM() {
@@ -444,10 +476,10 @@ void RunBruteForceEM() {
   t = clock();
   if (DO_SHORT_SEQ) {
     ComputeDataWithBruteForce(&data, pABA, tag_sequences);
-    OutputResults(data, pABA, tag_sequences);
+    OutputResultsForBruteForce(data, pABA, tag_sequences);
   } else {
     ComputeDataWithBruteForce(&data, pLong, tag_sequences);
-    OutputResults(data, pLong, tag_sequences);
+    OutputResultsForBruteForce(data, pLong, tag_sequences);
   }
   t = clock() - t;
   cout << "\n--Timing Results--\n";
@@ -474,12 +506,10 @@ void RunForwardBackwardAndViterbi() {
     if (EXTRA_PRINTING)
       cout << "Short sequence: " << endl;
     ForwardBackwardAndViterbi(pABA, nodes, edges_to_update, all_edges, &data);
-    OutputResults(data, pABA, tag_sequences);
   } else {
     if (EXTRA_PRINTING)
       cout << "Long sequence: " << endl;
     ForwardBackwardAndViterbi(pLong, nodes, edges_to_update, all_edges, &data);
-    OutputResults(data, pLong, tag_sequences);
   }
   t = clock() - t;
   cout << "\n--Timing Results--\n";

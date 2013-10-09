@@ -12,7 +12,8 @@ struct Edge;
 
 struct Node {
   string name;  // Useful name accessible in repr(), used as key in maps.
-  int index;  // Topological ordering index.
+  int index;  // Topological ordering index. Technically not used since nodes
+              // are consistently stored in vectors...
   vector<Edge *> parent_edges;
   vector<Edge *> child_edges;
   Node(string name, int index) {
