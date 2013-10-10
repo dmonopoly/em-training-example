@@ -12,11 +12,9 @@
 #include "Edge.h"
 
 /*  SETTINGS  */
-#define USE_FORWARD_BACKWARD true
-#define EXTRA_PRINTING false
-
-// The number of iterations to do the EM training.
-#define NUMBER_ITERATIONS 30
+#define USE_FORWARD_BACKWARD false
+#define DO_SHORT_SEQ false
+#define NUMBER_ITERATIONS 100
 
 // Initial values.
 // #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
@@ -24,8 +22,7 @@
 #define INIT_VAL_pAGivenX .5
 #define INIT_VAL_pAGivenY .5
 
-// Applies only to brute force method:
-#define DO_SHORT_SEQ true
+#define EXTRA_PRINTING false
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
@@ -102,7 +99,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
   OutputHelper::PrintHeader(rowOfNots);
   OutputHelper::PrintDataRow(0, rowOfNots, *data);
 
-  for (int i = 0; i < NUMBER_ITERATIONS; ++i) {
+  for (int iter_count = 0; iter_count < NUMBER_ITERATIONS; ++iter_count) {
     // Reset counts to zero.
     (*data)[cXA.repr()] = 0;
     (*data)[cXB.repr()] = 0;
@@ -156,7 +153,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
     // iteration.
     Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
     saved_obs_seq_probs.push_back((*data)[n.repr()]);
-    OutputHelper::PrintDataRow(i + 1, rowOfNots, *data);
+    OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
   }
 }
 
@@ -308,7 +305,7 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
   }
 }
 
-void Viterbi(map<string, double> *data, const vector<Node *> &nodes) {
+void Viterbi(const map<string, double> &data, const vector<Node *> &nodes) {
   // Key: string representation of node; Value: optimal/best value so far.
   map<string, double> opt;
   // Key: string representation of node; Value: previous node string repr.
@@ -325,7 +322,7 @@ void Viterbi(map<string, double> *data, const vector<Node *> &nodes) {
     Node *current_node = nodes.at(i);
     for (Edge *e : current_node->child_edges) {
       Node *next = e->dest;
-      double new_val = opt.at(current_node->repr()) * (*data)[e->repr()];
+      double new_val = opt.at(current_node->repr()) * data.at(e->repr());
       if (new_val > opt.at(next->repr())) {
         opt[next->repr()] = new_val;
         best_path[next->repr()] = current_node->repr();
@@ -345,7 +342,27 @@ void Viterbi(map<string, double> *data, const vector<Node *> &nodes) {
     assoc_word_seq.push_back(word);
     next_node_repr = best_path.at(name); // Skip sister node.
   }
-  cout << "Viterbi results: " << endl;
+  Notation n_best_match_pTAndW_key("P", assoc_word_seq, AND_DELIM,
+      best_tag_seq);
+  Notation n_best_match_pTGivenW_key("P", best_tag_seq, GIVEN_DELIM,
+      assoc_word_seq);
+  string best_match_pTAndW_key = n_best_match_pTAndW_key.repr();
+  string best_match_pTGivenW_key = n_best_match_pTGivenW_key.repr();
+//   try {
+//     data.at(best_match_pTAndW_key); // test
+//   } catch (exception &e) {
+//     cerr << "No key for best_match_pTAndW_key." << endl;
+//   }
+//   try {
+//     data.at(best_match_pTGivenW_key); // test
+//   } catch (exception &e) {
+//     cerr << "No key for best_match_pTGivenW_key." << endl;
+//   }
+  cout << "\n--Viterbi results--\n";
+//   cout << "The highest probability found belongs to " << best_match_pTAndW_key
+//     << ": " << data.at(best_match_pTAndW_key) << ", " << best_match_pTGivenW_key
+//     << ": " << data.at(best_match_pTGivenW_key) << endl;
+  cout << "Best matching tag sequence: " << endl;
   for (int i = best_tag_seq.size() - 1; i >= 0; --i) {
     cout << best_tag_seq.at(i);
   }
@@ -365,7 +382,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   OutputHelper::PrintDataRow(0, rowOfNots, *data);
 
   // PRECONDITION: The order of nodes/edges is already in topological
-  // order!
+  // order.
   map<string, double> alpha;  // Sum of all paths from start state to this node.
   map<string, double> beta;  // Sum of all paths from this node to final state.
   alpha[nodes.at(0)->repr()] = 1;
@@ -452,7 +469,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
       cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
     Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
     saved_obs_seq_probs.push_back((*data)[n.repr()]);
-    OutputHelper::PrintDataRow(iter_count, rowOfNots, *data);
+    OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
   }
   if (EXTRA_PRINTING)
     cout << "Done with Forward-Backward. Proceeding to Viterbi." << endl;
@@ -462,7 +479,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   // fractional counts of e.g. C(X|A), which were then used to update the
   // "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to find
   // the highest-probability path based on the collected probabilities.
-  Viterbi(data, nodes);
+  Viterbi(*data, nodes);
 }
 
 void RunBruteForceEM() {
