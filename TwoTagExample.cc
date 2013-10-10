@@ -12,7 +12,6 @@
 #include "Edge.h"
 
 /*  SETTINGS  */
-#define USE_FORWARD_BACKWARD false
 #define DO_SHORT_SEQ false
 #define NUMBER_ITERATIONS 100
 
@@ -504,8 +503,6 @@ void RunBruteForceEM() {
 }
 
 void RunForwardBackwardAndViterbi() {
-  if (EXTRA_PRINTING)
-    cout << "Running Efficient EM." << endl;
   map<string, double> data;  // Storage for probabilities and counts.
   vector<Node *> nodes;
   vector<Edge *> edges_to_update;
@@ -535,10 +532,13 @@ void RunForwardBackwardAndViterbi() {
   DestroyTrellis(&nodes, &all_edges);
 }
 
-int main() {
-  if (USE_FORWARD_BACKWARD)
+int main(int argc, char *argv[]) {
+  if (argc < 2) {
+    cout << "Running forward-backward and viterbi.\n" << endl;
     RunForwardBackwardAndViterbi();
-  else
+  } else if (argc >= 2) {
+    cout << "Running brute force.\n" << endl;
     RunBruteForceEM();
+  }
   return 0;
 }

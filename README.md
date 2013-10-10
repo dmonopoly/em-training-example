@@ -20,6 +20,12 @@ Compile using cmake. Example:
 Run the generated executable. Alternatively run any test executables, but make
 sure you do `cmake -Dtest=ON ..` first.
 
-## TODO
-Viterbi algorithm.
+### Examples
+Forward-backward and Viterbi:
+
+    ./two_tag_example
+
+Brute force (pass any param):
+
+    ./two_tag_example -b
 
