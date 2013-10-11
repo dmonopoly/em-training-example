@@ -13,7 +13,7 @@
 
 /*  SETTINGS  */
 #define DO_SHORT_SEQ false
-#define NUMBER_ITERATIONS 100
+#define NUMBER_ITERATIONS 40
 
 // Initial values.
 // #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
@@ -305,7 +305,8 @@ void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
 }
 
 void Viterbi(const map<string, double> &data, const vector<Node *> &nodes) {
-  // Key: string representation of node; Value: optimal/best value so far.
+  // Key: string representation of node; Value: best value of P(t, w) so far to
+  // that node. Best P(t, w) is stored in opt.at(last node).
   map<string, double> opt;
   // Key: string representation of node; Value: previous node string repr.
   map<string, string> best_path;
@@ -341,31 +342,21 @@ void Viterbi(const map<string, double> &data, const vector<Node *> &nodes) {
     assoc_word_seq.push_back(word);
     next_node_repr = best_path.at(name); // Skip sister node.
   }
-  Notation n_best_match_pTAndW_key("P", assoc_word_seq, AND_DELIM,
+  double best_prob_pTAndW = opt.at(nodes.back()->repr());
+  Notation n_best_match_pTAndW("P", assoc_word_seq, AND_DELIM,
       best_tag_seq);
-  Notation n_best_match_pTGivenW_key("P", best_tag_seq, GIVEN_DELIM,
+  Notation n_best_match_pTGivenW("P", best_tag_seq, GIVEN_DELIM,
       assoc_word_seq);
-  string best_match_pTAndW_key = n_best_match_pTAndW_key.repr();
-  string best_match_pTGivenW_key = n_best_match_pTGivenW_key.repr();
-//   try {
-//     data.at(best_match_pTAndW_key); // test
-//   } catch (exception &e) {
-//     cerr << "No key for best_match_pTAndW_key." << endl;
-//   }
-//   try {
-//     data.at(best_match_pTGivenW_key); // test
-//   } catch (exception &e) {
-//     cerr << "No key for best_match_pTGivenW_key." << endl;
-//   }
   cout << "\n--Viterbi results--\n";
-//   cout << "The highest probability found belongs to " << best_match_pTAndW_key
-//     << ": " << data.at(best_match_pTAndW_key) << ", " << best_match_pTGivenW_key
-//     << ": " << data.at(best_match_pTGivenW_key) << endl;
-  cout << "Best matching tag sequence: " << endl;
+  stringstream ss;
   for (int i = best_tag_seq.size() - 1; i >= 0; --i) {
-    cout << best_tag_seq.at(i);
+    ss << best_tag_seq.at(i);
   }
-  cout << endl;
+  string best_match_pTAndW_str = ss.str();
+  cout << "The highest probability found belongs to " << n_best_match_pTAndW <<
+    ": " << best_prob_pTAndW << ", " << n_best_match_pTGivenW << ": " <<
+    best_prob_pTAndW/saved_obs_seq_probs.back() << endl;
+  cout << "Best matching tag sequence: " << best_match_pTAndW_str << endl;
 }
 
 void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
