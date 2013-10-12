@@ -13,7 +13,7 @@
 
 /*  SETTINGS  */
 #define DO_SHORT_SEQ false
-#define NUMBER_ITERATIONS 40
+#define NUMBER_ITERATIONS 50
 
 // Initial values.
 // #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
@@ -21,7 +21,7 @@
 #define INIT_VAL_pAGivenX .5
 #define INIT_VAL_pAGivenY .5
 
-#define EXTRA_PRINTING false
+#define EXTRA_PRINTING true
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
@@ -91,7 +91,7 @@ void PrepareInitialData(map<string, double> *data) {
 }
 
 void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
-                               const vector<string> &tag_sequences) {
+                               const vector<vector<string> > &tag_sequences) {
   saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
   vector<Notation> rowOfNots{cXA, cXB, pAGivenX, pBGivenX, cYA, cYB, pAGivenY,
     pBGivenY, n};
@@ -107,16 +107,16 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
 
     // Get norm P(t,w) and counts.
     double sum_of_all_pTW = 0;  // Use this as divisor in normalization.
-    for (string seq : tag_sequences) {
-      vector<string> tags = NotationHelper::Individualize(seq);
+    for (vector<string> tags : tag_sequences) {
+//       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
       double unnormalized_prob = Calculator::ComputeUnnormalizedProbability(pTW,
           *data);
       sum_of_all_pTW += unnormalized_prob;
       (*data)[pTW.repr()] = unnormalized_prob;
     }
-    for (string seq : tag_sequences) {
-      vector<string> tags = NotationHelper::Individualize(seq);
+    for (vector<string> tags : tag_sequences) {
+//       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
 
       // Update counts with *normalized* values. We can also, while we have
@@ -134,8 +134,8 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
         Calculator::NormProbFactor(normalized_prob, pTW, cXB);
       (*data)[cYA.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
           cYA);
-      (*data)[cYB.repr()] +=
-        Calculator::NormProbFactor(normalized_prob, pTW, cYB);
+      (*data)[cYB.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
+          cYB);
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
@@ -156,8 +156,8 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
   }
 }
 
-void OutputResultsForBruteForce(map<string, double> &data, Notation n, const vector<string>
-                   &tag_sequences) {
+void OutputResultsForBruteForce(map<string, double> &data, Notation n,
+                                const vector<vector<string> > &tag_sequences) {
   cout << "\n--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
   ofstream fout("observed_data_probabilities.txt");
   for (int i = 0; i < saved_obs_seq_probs.size(); ++i) {
@@ -173,13 +173,14 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n, const vec
   cout << "Final " << pBGivenY << ": " << data[pBGivenY.repr()] << endl << endl;
 
   cout << "Determining the best matching tag sequence:\n";
-  vector<string> tags = NotationHelper::Individualize(tag_sequences.at(0));
+//   vector<string> tags = NotationHelper::Individualize(tag_sequences.at(0));
+  vector<string> tags = tag_sequences.at(0);
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
   Notation *best_pTGivenW = NULL;
   string best_match_pTAndW_key = pTW_first.repr();
   string best_match_pTGivenW_key;
-  for (string seq : tag_sequences) {
-    vector<string> tags = NotationHelper::Individualize(seq);
+  for (vector<string> tags : tag_sequences) {
+//     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
     Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
 
@@ -206,12 +207,9 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n, const vec
 
 // WARNING: Creates data on heap. Call DestroyTrellis when done.
 // Post: 'nodes' points to a vector where front() is the start node, back() is
-// the end, and the vector lists the nodes in topological order. For each node,
-// name.substr(0, 1) is the tag; name.substr(1, 1) is the observed word (all
-// chars following index 0 in the name string are garbage, only there to
-// guarantee uniqueness).  'edges' points to a vector of corresponding edges
-// with representations like P(A|X). **Nodes and edges are in topological
-// order!**.
+// the end, and the vector lists the nodes in topological order. Each node has a
+// unique name. 'edges' points to a vector of corresponding edges with
+// representations like P(A|X). **Nodes and edges are in topological order!**.
 void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
                   vector<Edge *> *all_edges) {
   if (EXTRA_PRINTING)
@@ -231,19 +229,16 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
     for (int j = 0; j < TAG_LIST.size(); ++j) {
       if (EXTRA_PRINTING)
         cout << Basic::Tab(1) << "tag " << TAG_LIST[j] << "--\n";
-      // Encode the current tag at name[0] for each node. This name is used for
-      // the notation object created soon after this. We add other parts to
-      // guarantee uniqueness (so we avoid collisions) since the names are used
-      // as keys in the alpha and beta of Forward-Backward. At name[1], we
-      // encode the observed data sequence, useful for Viterbi. Note that
-      // 'first' and 'second' are useful for retrieving the 'sister' node if you
-      // only have one.
+      // Encode unique names for each node. Note that 'first' and 'second' are
+      // useful for retrieving the 'sister' node if you only have one.
+      string the_tag = TAG_LIST[j];
+      string the_word = OBSERVED_DATA[i];
       stringstream ss;
-      ss << TAG_LIST[j] << OBSERVED_DATA[i] << i << j << "first";
-      Node *n1 = new Node(ss.str(), topol_index);
+      ss << the_tag << the_word << i << j << "first";
+      Node *n1 = new Node(ss.str(), topol_index, the_tag, the_word);
       ss.clear(); ss.str("");
-      ss << TAG_LIST[j] << OBSERVED_DATA[i] << i << j << "second";
-      Node *n2 = new Node(ss.str(), topol_index + 1);
+      ss << the_tag << the_word << i << j << "second";
+      Node *n2 = new Node(ss.str(), topol_index + 1, the_tag, the_word);
       if (EXTRA_PRINTING) {
         cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
         cout << Basic::Tab(2) << "node name: " << n2->repr() << endl;
@@ -251,15 +246,13 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
       nodes->push_back(n1);
       nodes->push_back(n2);
       if (topol_index == 1) {
-        Notation notation_obj("P", {TAG_LIST[j]});
+        Notation notation_obj("P", {the_tag});
         Edge *e = new Edge(notation_obj, start_node, n1);
         all_edges->push_back(e);
       } else {
         for (Node *p : prev_nodes) {
-          if (EXTRA_PRINTING)
-            cout << Basic::Tab(2) << "retrieving last tag: " << p->repr()[0] << endl;
-          Notation notation_obj("P", {TAG_LIST[j]}, GIVEN_DELIM,
-              {p->repr().substr(0, 1)});  // Retrieve name[0], which stores the last tag.
+          // P(t2|t1)
+          Notation notation_obj("P", {the_tag}, GIVEN_DELIM, {p->tag});
           if (EXTRA_PRINTING)
             cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
           Edge *e = new Edge(notation_obj, p, n1);
@@ -267,8 +260,8 @@ void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
         }
       }
       future_prev_nodes.push_back(n2);
-      Notation notation_obj("P", {OBSERVED_DATA[i]}, GIVEN_DELIM,
-          {TAG_LIST[j]});
+      Notation notation_obj("P", {the_word}, GIVEN_DELIM,
+          {the_tag});
       Edge *e = new Edge(notation_obj, n1, n2);
       select_edges->push_back(e);
       all_edges->push_back(e);
@@ -416,10 +409,12 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
     (*data)[cYB.repr()] = 0;
     for (int i = 0; i < select_edges.size(); ++i) {
       Edge *e = select_edges[i];
-      string count_key = NotationHelper::GetCountKeyFromEdgeRepr(e->repr());
+      // The count key can be determined by looking at any node this select edge
+      // is incident on. We take that node's 'tag' and 'word' fields.
+      Notation n_count_key("C", {e->dest->tag, e->dest->word}, AND_DELIM);
+      string count_key = n_count_key.repr();
       if (EXTRA_PRINTING) {
-        cout << Basic::Tab(1) << "e's repr: " << e->repr() << endl;
-        cout << Basic::Tab(1) << "Getting count key " << count_key << " from " << e->repr() << endl;
+        cout << Basic::Tab(1) << "Getting count key: " << count_key << endl;
         cout << Basic::Tab(1) << alpha[e->src->repr()] << "<  >" << data->at(e->repr()) << endl;
         cout << Basic::Tab(1) << beta[e->dest->repr()] << "[ ]" << alpha[nodes.back()->repr()] << endl;
       }
@@ -450,7 +445,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
     (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
         (*data)[cYA.repr()] );
 
-    vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+    vector<vector<string> > tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
         OBSERVED_DATA.size());
 
     // The ultimate value we want to maximize. This should increase with each
@@ -476,7 +471,7 @@ void RunBruteForceEM() {
   map<string, double> data;  // Storage for probabilities and counts.
   PrepareInitialData(&data);
 
-  vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+  vector<vector<string> > tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
       OBSERVED_DATA.size());
 
   clock_t t;
@@ -499,7 +494,7 @@ void RunForwardBackwardAndViterbi() {
   vector<Edge *> edges_to_update;
   vector<Edge *> all_edges; // for deletion later
 
-  vector<string> tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
+  vector<vector<string> > tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
       OBSERVED_DATA.size());
 
   PrepareInitialData(&data);
