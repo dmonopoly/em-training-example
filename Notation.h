@@ -16,7 +16,7 @@ class Notation {
   static const string SEQ_DELIM;
   static const string NULL_DELIM;
 
-  string predicate;  // P or C
+  string predicate;  // P or C. TODO: include SIGMA for sums...
   // Denotes the delimiter separating 'first' and 'second'.
   string delimiter;
 
