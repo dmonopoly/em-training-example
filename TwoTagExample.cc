@@ -10,6 +10,7 @@
 #include "Notation.h"
 #include "Node.h"
 #include "Edge.h"
+#include "TrellisAid.h"
 
 /*  SETTINGS  */
 #define DO_SHORT_SEQ false
@@ -21,7 +22,7 @@
 #define INIT_VAL_pAGivenX .5
 #define INIT_VAL_pAGivenY .5
 
-#define EXTRA_PRINTING true
+#define EXTRA_PRINTING false
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
@@ -498,7 +499,20 @@ void RunForwardBackwardAndViterbi() {
       OBSERVED_DATA.size());
 
   PrepareInitialData(&data);
-  BuildTrellis(&nodes, &edges_to_update, &all_edges);
+//   BuildTrellis(&nodes, &edges_to_update, &all_edges);
+//   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
+//                     vector<Edge *> *all_edges, const vector<string>
+//                     &observed_data, const vector<string> &tag_list);
+  vector<string> observed_data;
+  vector<string> tag_list;
+  for (string s : OBSERVED_DATA)
+    observed_data.push_back(s);
+  for (string s : TAG_LIST)
+    tag_list.push_back(s);
+
+  // TODONOW
+  TrellisAid::BuildTrellis(&nodes, &edges_to_update, &all_edges, observed_data,
+      tag_list);
 
   clock_t t;
   t = clock();

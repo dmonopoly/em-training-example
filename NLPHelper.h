@@ -1,9 +1,9 @@
+// Helper functions for brute force and efficient EM + Viterbi.
 #ifndef HELPER_H_
 #define HELPER_H_
 
 #include <cassert>
 #include <cstdlib>
-#include <cmath>
 #include <iomanip>
 #include <map>
 #include <sstream>
@@ -14,6 +14,9 @@
 #include "Edge.h"
 
 using namespace std;
+
+struct Node;
+struct Edge;
 
 namespace OutputHelper {
   void PrintHeader(const vector<Notation> &nots);

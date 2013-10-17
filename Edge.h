@@ -21,4 +21,4 @@ struct Edge {
   }
 };
 
-#endif
+#endif  // EDGE_H_

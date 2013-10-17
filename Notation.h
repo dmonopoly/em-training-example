@@ -16,6 +16,8 @@ class Notation {
   static const string SEQ_DELIM;
   static const string NULL_DELIM;
 
+  static const Notation p1;  // Auto-probability 1.
+
   string predicate;  // P or C. TODO: include SIGMA for sums...
   // Denotes the delimiter separating 'first' and 'second'.
   string delimiter;
