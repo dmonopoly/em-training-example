@@ -55,8 +55,7 @@ namespace Calculator {
   double NormProbFactor(const double &normalizedProb, const Notation &pn,
                         const Notation &cn);
 
-  // Usable by both brute force and efficient EM:
-  // TODO: But this goes over all tag sequences! BAD.
+  // Should only be used by brute force.
   // Pre: Notation is like P(ABA) (empty second list), and data has
   // appropriate key-value pairs set.
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}

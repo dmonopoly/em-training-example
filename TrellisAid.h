@@ -30,6 +30,7 @@ namespace TrellisAid {
                     vector<Edge *> *all_edges, const vector<string>
                     &observed_data, const vector<string> &tag_list);
   void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges);
+  // TODO
 //   void Viterbi(const map<string, double> &data, const vector<Node *> &nodes);
 //   void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
 //                                  const vector<Edge *> &select_edges,

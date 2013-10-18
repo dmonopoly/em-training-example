@@ -1,4 +1,3 @@
-// not used yet, in progress
 #include "TrellisAid.h"
 
 #define EXTRA_PRINTING false

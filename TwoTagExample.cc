@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 #include <ctime>
 #include <iostream>
@@ -207,7 +208,7 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n,
 }
 
 void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
-             const vector<string> observed_data) {
+             const vector<string> observed_data, bool very_small_data_set) {
   // Key: string representation of node; Value: best value of P(t, w) so far to
   // that node. Best P(t, w) is stored in opt.at(last node).
   map<string, double> opt;
@@ -245,6 +246,10 @@ void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
     assoc_word_seq.push_back(word);
     next_node_repr = best_path.at(name); // Skip sister node.
   }
+  // Reverse these because they were retrieved backwards.
+  reverse(best_tag_seq.begin(), best_tag_seq.end());
+  reverse(assoc_word_seq.begin(), assoc_word_seq.end());
+
   double best_prob_pTAndW = opt.at(nodes.back()->repr());
   Notation n_best_match_pTAndW("P", assoc_word_seq, AND_DELIM,
       best_tag_seq);
@@ -252,13 +257,18 @@ void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
       assoc_word_seq);
   cout << "\n--Viterbi results--\n";
   stringstream ss;
-  for (int i = best_tag_seq.size() - 1; i >= 0; --i) {
+  for (int i = 0; i < best_tag_seq.size(); ++i) {
     ss << best_tag_seq.at(i);
   }
   string best_match_pTAndW_str = ss.str();
   cout << "The highest probability found belongs to " << n_best_match_pTAndW <<
-    ": " << best_prob_pTAndW << ", " << n_best_match_pTGivenW << ": " <<
-    best_prob_pTAndW/saved_obs_seq_probs.back() << endl;
+    ": " << best_prob_pTAndW;
+  if (very_small_data_set) {
+    cout << ", " << n_best_match_pTGivenW << ": " <<
+      best_prob_pTAndW/saved_obs_seq_probs.back() << endl;
+  } else {
+    cout << endl;
+  }
   cout << "Best matching tag sequence: " << best_match_pTAndW_str << endl;
 }
 
@@ -382,7 +392,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   // fractional counts of e.g. C(X|A), which were then used to update the
   // "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to find
   // the highest-probability path based on the collected probabilities.
-  Viterbi(*data, nodes, observed_data);
+  Viterbi(*data, nodes, observed_data, very_small_data_set);
 }
 
 void RunBruteForceEM() {
@@ -421,7 +431,7 @@ void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> t
 
   clock_t t;
   t = clock();
-  bool very_small_data_set = true; // TODO issue when this is false
+  bool very_small_data_set = true;
   if (DO_SHORT_SEQ) {
     if (EXTRA_PRINTING)
       cout << "Short sequence: " << endl;
