@@ -23,8 +23,8 @@ target_link_libraries(${PROJECT_NAME}
                       basic_helper_lib
                       notation_lib
                       edge_lib
-                      nlp_helper_lib)
-#                       trellis_aid_lib)
+                      nlp_helper_lib
+                      trellis_aid_lib)
 
 # Testing.
 if (test)

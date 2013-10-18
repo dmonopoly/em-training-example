@@ -4,7 +4,7 @@ const string Notation::GIVEN_DELIM = "|";
 const string Notation::AND_DELIM = ",";
 const string Notation::SEQ_DELIM = "";
 const string Notation::NULL_DELIM = "NULL";  // Signifies delim never used.
-const Notation p1("P", {"1"});  // Auto-probability 1.
+// const Notation p1("P", {"1"});  // Auto-probability 1.
 
 Notation::Notation() {
 }

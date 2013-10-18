@@ -25,7 +25,8 @@
 #define EXTRA_PRINTING false
 /*  END SETTINGS  */
 
-// TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
+// TODO: Reorganize and use Notation::GIVEN_DELIM. Requires moving all the
+// Notation objects below. http://bit.ly/15rbAom
 #define GIVEN_DELIM "|"
 #define AND_DELIM ","
 #define SEQ_DELIM ""
@@ -37,6 +38,9 @@ const string Y = "Y";
 const string A = "A";
 const string B = "B";
 const vector<string> TAG_LIST{X, Y};
+
+// Only the brute force functions here use these. We have decoupled these for
+// efficient EM / Viterbi.
 #if DO_SHORT_SEQ
 const vector<string> OBSERVED_DATA{A, B, A};
 #else
@@ -109,7 +113,6 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
     // Get norm P(t,w) and counts.
     double sum_of_all_pTW = 0;  // Use this as divisor in normalization.
     for (vector<string> tags : tag_sequences) {
-//       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
       double unnormalized_prob = Calculator::ComputeUnnormalizedProbability(pTW,
           *data);
@@ -117,7 +120,6 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
       (*data)[pTW.repr()] = unnormalized_prob;
     }
     for (vector<string> tags : tag_sequences) {
-//       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
 
       // Update counts with *normalized* values. We can also, while we have
@@ -174,14 +176,12 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n,
   cout << "Final " << pBGivenY << ": " << data[pBGivenY.repr()] << endl << endl;
 
   cout << "Determining the best matching tag sequence:\n";
-//   vector<string> tags = NotationHelper::Individualize(tag_sequences.at(0));
   vector<string> tags = tag_sequences.at(0);
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
   Notation *best_pTGivenW = NULL;
   string best_match_pTAndW_key = pTW_first.repr();
   string best_match_pTGivenW_key;
   for (vector<string> tags : tag_sequences) {
-//     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
     Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
 
@@ -206,99 +206,8 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n,
   delete best_pTGivenW;
 }
 
-// WARNING: Creates data on heap. Call DestroyTrellis when done.
-// Post: 'nodes' points to a vector where front() is the start node, back() is
-// the end, and the vector lists the nodes in topological order. Each node has a
-// unique name. 'edges' points to a vector of corresponding edges with
-// representations like P(A|X). **Nodes and edges are in topological order!**.
-void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
-                  vector<Edge *> *all_edges) {
-  if (EXTRA_PRINTING)
-    cout << "Building trellis." << endl;
-  // Store the last column of nodes to add links to in prev_nodes. Accumulate
-  // the next set of prev_nodes in fugure_prev_nodes.
-  vector<Node *> prev_nodes, future_prev_nodes;
-
-  Node *start_node = new Node("START_NODE", 0);
-  nodes->push_back(start_node);
-
-  int topol_index = 1;
-  for (int i = 0; i < OBSERVED_DATA.size(); ++i)  {
-    future_prev_nodes.clear();
-    if (EXTRA_PRINTING)
-      cout << "obs " << OBSERVED_DATA[i] << "--\n";
-    for (int j = 0; j < TAG_LIST.size(); ++j) {
-      if (EXTRA_PRINTING)
-        cout << Basic::Tab(1) << "tag " << TAG_LIST[j] << "--\n";
-      // Encode unique names for each node. Note that 'first' and 'second' are
-      // useful for retrieving the 'sister' node if you only have one.
-      string the_tag = TAG_LIST[j];
-      string the_word = OBSERVED_DATA[i];
-      stringstream ss;
-      ss << the_tag << the_word << i << j << "first";
-      Node *n1 = new Node(ss.str(), topol_index, the_tag, the_word);
-      ss.clear(); ss.str("");
-      ss << the_tag << the_word << i << j << "second";
-      Node *n2 = new Node(ss.str(), topol_index + 1, the_tag, the_word);
-      if (EXTRA_PRINTING) {
-        cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
-        cout << Basic::Tab(2) << "node name: " << n2->repr() << endl;
-      }
-      nodes->push_back(n1);
-      nodes->push_back(n2);
-      if (topol_index == 1) {
-        Notation notation_obj("P", {the_tag});
-        Edge *e = new Edge(notation_obj, start_node, n1);
-        all_edges->push_back(e);
-      } else {
-        for (Node *p : prev_nodes) {
-          // P(t2|t1)
-          Notation notation_obj("P", {the_tag}, GIVEN_DELIM, {p->tag});
-          if (EXTRA_PRINTING)
-            cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
-          Edge *e = new Edge(notation_obj, p, n1);
-          all_edges->push_back(e);
-        }
-      }
-      future_prev_nodes.push_back(n2);
-      Notation notation_obj("P", {the_word}, GIVEN_DELIM,
-          {the_tag});
-      Edge *e = new Edge(notation_obj, n1, n2);
-      select_edges->push_back(e);
-      all_edges->push_back(e);
-    }
-    topol_index += 2;
-    prev_nodes = future_prev_nodes;
-  }
-
-  // To the end point. It is important that these have probability 1 for the
-  Node *end_node = new Node("END_NODE", topol_index);
-  nodes->push_back(end_node);
-  for (Node *p : prev_nodes) {
-    Edge *e = new Edge(p1, p, end_node);
-    all_edges->push_back(e);
-  }
-
-  if (DO_SHORT_SEQ) {
-    assert(all_edges->size() == 18 && "Incorrect number of edges");
-    assert(select_edges->size() == 6 && "Incorrect number of edges");
-    assert(nodes->size() == 14 && "Incorrect number of nodes");
-  }
-  if (EXTRA_PRINTING)
-    cout << "Done building trellis." << endl;
-}
-
-void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges) {
-  // Deletes nodes and edges.
-  for (Node *n : *nodes) {
-    delete n;
-  }
-  for (Edge *e : *all_edges) {
-    delete e;
-  }
-}
-
-void Viterbi(const map<string, double> &data, const vector<Node *> &nodes) {
+void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
+             const vector<string> observed_data) {
   // Key: string representation of node; Value: best value of P(t, w) so far to
   // that node. Best P(t, w) is stored in opt.at(last node).
   map<string, double> opt;
@@ -328,7 +237,7 @@ void Viterbi(const map<string, double> &data, const vector<Node *> &nodes) {
   vector<string> best_tag_seq;
   vector<string> assoc_word_seq;
   string next_node_repr = nodes.back()->repr();
-  for (int i = 0; i < OBSERVED_DATA.size(); ++i) {
+  for (int i = 0; i < observed_data.size(); ++i) {
     string name = best_path.at(next_node_repr);
     string tag = name.substr(0, 1);
     string word = name.substr(1, 1);
@@ -354,9 +263,12 @@ void Viterbi(const map<string, double> &data, const vector<Node *> &nodes) {
 }
 
 void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
-                            const vector<Edge *> &select_edges,
-                            const vector<Edge *> &all_edges,
-                            map<string, double> *data) {
+                               const vector<Edge *> &select_edges,
+                               const vector<Edge *> &all_edges,
+                               map<string, double> *data,
+                               bool very_small_data_set,
+                               const vector<string> observed_data,
+                               const vector<string> tag_list) {
   if (EXTRA_PRINTING)
     cout << "Beginning Forward-Backward." << endl;
   saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
@@ -446,16 +358,21 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
     (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
         (*data)[cYA.repr()] );
 
-    vector<vector<string> > tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
-        OBSERVED_DATA.size());
+    // Do not execute the following unless we are dealing with a very small
+    // tag set and vocabulary. For real large texts, this would take too long -
+    // but it's nice to have this to test on small self-defined texts.
+    if (very_small_data_set) {
+      vector<vector<string> > tag_sequences =
+        TagHandler::GenerateTagSequences(tag_list, observed_data.size());
 
-    // The ultimate value we want to maximize. This should increase with each
-    // iteration.
-    if (EXTRA_PRINTING)
-      cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
-    Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
-    saved_obs_seq_probs.push_back((*data)[n.repr()]);
-    OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
+      // The ultimate value we want to maximize. This should increase with each
+      // iteration.
+      if (EXTRA_PRINTING)
+        cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
+      Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
+      saved_obs_seq_probs.push_back((*data)[n.repr()]);
+      OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
+    }
   }
   if (EXTRA_PRINTING)
     cout << "Done with Forward-Backward. Proceeding to Viterbi." << endl;
@@ -465,7 +382,7 @@ void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
   // fractional counts of e.g. C(X|A), which were then used to update the
   // "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use Viterbi to find
   // the highest-probability path based on the collected probabilities.
-  Viterbi(*data, nodes);
+  Viterbi(*data, nodes, observed_data);
 }
 
 void RunBruteForceEM() {
@@ -489,53 +406,44 @@ void RunBruteForceEM() {
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
 }
 
-void RunForwardBackwardAndViterbi() {
+void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> tag_list) {
   map<string, double> data;  // Storage for probabilities and counts.
   vector<Node *> nodes;
   vector<Edge *> edges_to_update;
   vector<Edge *> all_edges; // for deletion later
 
-  vector<vector<string> > tag_sequences = TagHandler::GenerateTagSequences(TAG_LIST,
-      OBSERVED_DATA.size());
+  vector<vector<string> > tag_sequences =
+      TagHandler::GenerateTagSequences(tag_list, observed_data.size());
 
   PrepareInitialData(&data);
-//   BuildTrellis(&nodes, &edges_to_update, &all_edges);
-//   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
-//                     vector<Edge *> *all_edges, const vector<string>
-//                     &observed_data, const vector<string> &tag_list);
-  vector<string> observed_data;
-  vector<string> tag_list;
-  for (string s : OBSERVED_DATA)
-    observed_data.push_back(s);
-  for (string s : TAG_LIST)
-    tag_list.push_back(s);
-
-  // TODONOW
   TrellisAid::BuildTrellis(&nodes, &edges_to_update, &all_edges, observed_data,
       tag_list);
 
   clock_t t;
   t = clock();
+  bool very_small_data_set = true; // TODO issue when this is false
   if (DO_SHORT_SEQ) {
     if (EXTRA_PRINTING)
       cout << "Short sequence: " << endl;
-    ForwardBackwardAndViterbi(pABA, nodes, edges_to_update, all_edges, &data);
+    ForwardBackwardAndViterbi(pABA, nodes, edges_to_update, all_edges, &data,
+        very_small_data_set, observed_data, tag_list);
   } else {
     if (EXTRA_PRINTING)
       cout << "Long sequence: " << endl;
-    ForwardBackwardAndViterbi(pLong, nodes, edges_to_update, all_edges, &data);
+    ForwardBackwardAndViterbi(pLong, nodes, edges_to_update, all_edges, &data,
+        very_small_data_set, observed_data, tag_list);
   }
   t = clock() - t;
   cout << "\n--Timing Results--\n";
   printf("It took me %lu clicks (%f seconds).\n", t, ((float)t)/CLOCKS_PER_SEC);
 
-  DestroyTrellis(&nodes, &all_edges);
+  TrellisAid::DestroyTrellis(&nodes, &all_edges);
 }
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
     cout << "Running forward-backward and viterbi.\n" << endl;
-    RunForwardBackwardAndViterbi();
+    RunForwardBackwardAndViterbi(OBSERVED_DATA, TAG_LIST);
   } else if (argc >= 2) {
     cout << "Running brute force.\n" << endl;
     RunBruteForceEM();

@@ -1,3 +1,5 @@
+Current status: factoring out methods for general application. NLPHelper?
+
 ## What is this?
 Implementations of brute force EM, forward-backward EM, and Viterbi to find
 the best matching tag sequence for a simple observation of sequence.
@@ -8,7 +10,12 @@ http://d.pr/i/ADyl
 Research, understanding the algorithms, etc. So it's a bit hack-y.
 
 ### Code Organization
-Main file: TwoTagExample.cc.
+- Main file: TwoTagExample.cc. This runs the brute force and the efficient method.
+- The following files are needed to apply Efficient EM and Viterbi methods on your
+own datasets: 
+  - TrellisAid.h and TrellisAid.cc
+  - NotationConstants.h
+  - ...TODO
 
 ## Running
 Compile using cmake. Example:

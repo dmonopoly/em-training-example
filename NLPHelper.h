@@ -56,6 +56,7 @@ namespace Calculator {
                         const Notation &cn);
 
   // Usable by both brute force and efficient EM:
+  // TODO: But this goes over all tag sequences! BAD.
   // Pre: Notation is like P(ABA) (empty second list), and data has
   // appropriate key-value pairs set.
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}
