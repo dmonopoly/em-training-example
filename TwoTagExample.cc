@@ -245,7 +245,7 @@ void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> t
 
   clock_t t;
   t = clock();
-  bool very_small_data_set = false; // tmp
+  bool very_small_data_set = true; // tmp
   if (DO_SHORT_SEQ) {
     if (EXTRA_PRINTING)
       cout << "Short sequence: " << endl;
@@ -268,10 +268,10 @@ void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> t
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cout << "Running Forward-backward and Viterbi.\n" << endl;
+    cout << "Running Forward-backward and Viterbi." << endl << endl;
     RunForwardBackwardAndViterbi(OBSERVED_DATA, TAG_LIST);
   } else if (argc >= 2) {
-    cout << "Running brute force.\n" << endl;
+    cout << "Running brute force." << endl << endl;
     RunBruteForceEM();
   }
   return 0;

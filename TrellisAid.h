@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <map>
+#include <unordered_map>
 #include <sstream>
 #include <vector>
 
@@ -38,8 +39,9 @@ namespace TrellisAid {
                const vector<double> saved_obs_seq_probs);
   // Runs ForwardBackward 'num_iterations' times to determine best probabilities
   // and then calls Viterbi(). Updates data's count keys (e.g., C(X,A)) in the
-  // process. If very_small_data_set is true, we also print organized data rows.
-  // 'select_edges' are the edges like P(A|X) that we want to update.
+  // process. If very_small_data_set is true, we also print organized data rows
+  // used all parameters that follow this bool. 'select_edges' are the edges
+  // like P(A|X) that we want to update.
   void ForwardBackwardAndViterbi(const int num_iterations,
                                  const vector<Node *> &nodes,
                                  const vector<Edge *> &select_edges,

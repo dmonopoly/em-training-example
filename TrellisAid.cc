@@ -1,6 +1,6 @@
 #include "TrellisAid.h"
 
-#define EXTRA_PRINTING true
+#define EXTRA_PRINTING false
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -164,31 +164,32 @@ namespace TrellisAid {
                                  vector<double> *saved_obs_seq_probs) {
     if (EXTRA_PRINTING)
       cout << "Beginning Forward-Backward." << endl;
-    if (very_small_data_set) {
-      saved_obs_seq_probs->push_back((*data)[n.repr()]); // push back initial 0
-    }
+    // Key: count_key repr, like "C(X,A)". Value: true if already used. Main
+    // purpose is for checking while accumulating fractional counts in counting
+    // pass, but also used in output setup.
+    unordered_map<string, bool> already_used;
 
     vector<Notation> rowOfNots;
-    for (int i = 0; i < select_edges.size(); ++i) {
-      Edge *e = select_edges[i];
-      Notation n_count_key("C", {e->dest->tag, e->dest->word},
-                           Notation::AND_DELIM);
-      rowOfNots.push_back(n_count_key);
-      rowOfNots.push_back(e->notation);
-    }
-//     vector<Notation> rowOfNots{NotationConstants::cXA, NotationConstants::cXB,
-//                                NotationConstants::pAGivenX,
-//                                NotationConstants::pBGivenX,
-//                                NotationConstants::cYA, NotationConstants::cYB,
-//                                NotationConstants::pAGivenY,
-//                                NotationConstants::pBGivenY, n};
     if (very_small_data_set) {
+      saved_obs_seq_probs->push_back((*data)[n.repr()]); // push back initial 0
+      // Prepare row of Notation strings for nice column-organized output.
+      for (int i = 0; i < select_edges.size(); ++i) {
+        Edge *e = select_edges[i];
+        Notation n_count_key("C", {e->dest->tag, e->dest->word},
+            Notation::AND_DELIM);
+        if (!already_used[n_count_key.repr()]) {
+          rowOfNots.push_back(n_count_key);
+          rowOfNots.push_back(e->notation);
+          already_used[n_count_key.repr()] = true;
+        }
+      }
+      rowOfNots.push_back(n);
       OutputHelper::PrintHeader(rowOfNots);
       OutputHelper::PrintDataRow(0, rowOfNots, *data);
+      already_used.clear();
     }
 
-    // PRECONDITION: The order of nodes/edges is already in topological
-    // order.
+    // PRECONDITION: The order of nodes/edges is already in topological order.
     map<string, double> alpha;  // Sum of all paths from start to this node.
     map<string, double> beta;  // Sum of all paths from this node to final.
     alpha[nodes.at(0)->repr()] = 1;
@@ -229,53 +230,44 @@ namespace TrellisAid {
       // The count key can be determined by looking at any node this select
       // edge is incident on. We take that node's 'tag' and 'word' fields. For
       // count_keys, we follow the convention of C(tag, word) (e.g., C(X,A)).
-      map<string, double> total_fract_counts ; // Key: tag
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
+        Notation n_count_key("C", {e->dest->tag, e->dest->word},
+                             Notation::AND_DELIM);
         (*data)[n_count_key.repr()] = 0;
-        total_fract_counts[e->dest->tag] = 0;
       }
-//       (*data)[cXA.repr()] = 0;
-//       (*data)[cXB.repr()] = 0;
-//       (*data)[cYA.repr()] = 0;
-//       (*data)[cYB.repr()] = 0;
+
+      // Key: tag. Value: total fractional count associated with that tag.
+      unordered_map<string, double> total_fract_counts;
+
       // Iterate over select edges to update count_keys, used for updating
       // probabilities later.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
+        Notation n_count_key("C", {e->dest->tag, e->dest->word},
+                             Notation::AND_DELIM);
         string count_key = n_count_key.repr();
         if (EXTRA_PRINTING) {
-          cout << Basic::Tab(1) << "Getting count key: " << count_key << endl;
+          cout << Basic::Tab(1) << "Getting count key from edge " << e->repr()
+              << ": " << count_key << endl;
           cout << Basic::Tab(1) << alpha[e->src->repr()] <<
-            "<-alpha edge prob->" << data->at(e->repr()) << endl;
+              "<-alpha edge prob->" << data->at(e->repr()) << endl;
           cout << Basic::Tab(1) << beta[e->dest->repr()] << "<-beta end->" <<
               alpha[nodes.back()->repr()] << endl;
         }
+        // If we already saw this count key, subtract all previously accumulated
+        // values for that count_key from total_fract_counts before updating
+        // (*data)[count_key]. This compensates for adding too-early cXA's when
+        // computing the total fractional counts for C(X,w_i).
+        if (already_used[count_key])
+          total_fract_counts[e->dest->tag] -= (*data)[count_key];
         (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
                                * beta[e->dest->repr()]) /
                                alpha[nodes.back()->repr()];
+        already_used[count_key] = true;
         total_fract_counts[e->dest->tag] += (*data)[count_key];
-        // TODO: why prob not right... .6 should not be there
-        if (count_key == "C(X,A)" || count_key == "C(X,B)") {
-          cout << "--adding this to " << e->dest->tag << "," << e->dest->word << ": " <<
-            (*data)[count_key] << ". new value: " <<
-            total_fract_counts[e->dest->tag] << endl;
-        }
       }
-//       if (EXTRA_PRINTING) {
-//         cout << endl << Basic::Tab(1) << "'Given' X probabilities: " << endl <<
-//           Basic::Tab(1) << (*data)[cXA.repr()] << "/" << ( (*data)[cXA.repr()] +
-//           (*data)[cXB.repr()] ) << 
-//           Basic::Tab(1) << (*data)[cXB.repr()] << "/" << ( (*data)[cXB.repr()] +
-//           (*data)[cXB.repr()] );
-//         cout << endl << Basic::Tab(1) << "'Given' Y probabilities: " << endl <<
-//           Basic::Tab(1) << (*data)[cYA.repr()] << "/" << ( (*data)[cYA.repr()] +
-//           (*data)[cYB.repr()] ) << 
-//           Basic::Tab(1) << (*data)[cYB.repr()] << "/" << ( (*data)[cYB.repr()] +
-//           (*data)[cYB.repr()] );
-//       }
+
       // Update the unknown probabilities that we want to find. Use them in the
       // next iteration.
       for (int i = 0; i < select_edges.size(); ++i) {
@@ -283,21 +275,11 @@ namespace TrellisAid {
         Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
         (*data)[e->repr()] = (*data)[n_count_key.repr()] /
                              total_fract_counts.at(e->dest->tag);
-        if (n_count_key.repr() == "C(X,A)" || n_count_key.repr() == "C(X,B)")
-          cout << "tfc: " << e->dest->tag << ": " << total_fract_counts.at(e->dest->tag) << endl;
       }
-//       (*data)[pAGivenX.repr()] = (*data)[cXA.repr()]/( (*data)[cXA.repr()] +
-//           (*data)[cXB.repr()] );
-//       (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
-//           (*data)[cXA.repr()] );
-//       (*data)[pAGivenY.repr()] = (*data)[cYA.repr()]/( (*data)[cYA.repr()] +
-//           (*data)[cYB.repr()] );
-//       (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
-//           (*data)[cYA.repr()] );
 
       // Do not execute the following unless we are dealing with a very small
-      // tag set and vocabulary. For real large texts, this would take too long
-      // - but it's nice to have this to test on small self-defined texts.
+      // tag set and vocabulary. For real (large) texts, this would take too
+      // long - but it's nice to have this to test on small self-defined texts.
       if (very_small_data_set) {
         vector<vector<string> > tag_sequences =
           TagHandler::GenerateTagSequences(tag_list, observed_data.size());
