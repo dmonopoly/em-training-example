@@ -20,8 +20,7 @@ struct Node;
 struct Edge;
 
 namespace TrellisAid {
-
-  // WARNING: Creates data on heap. Call DestroyTrellis when done.  Post:
+  // WARNING: Creates data on heap. Call DestroyTrellis when done. Post:
   // 'nodes' points to a vector where front() is the start node, back() is the
   // end, and the vector lists the nodes in topological order. Each node has a
   // unique name. 'edges' points to a vector of corresponding edges with
@@ -30,12 +29,26 @@ namespace TrellisAid {
                     vector<Edge *> *all_edges, const vector<string>
                     &observed_data, const vector<string> &tag_list);
   void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges);
-  // TODO
-//   void Viterbi(const map<string, double> &data, const vector<Node *> &nodes);
-//   void ForwardBackwardAndViterbi(Notation n, const vector<Node *> &nodes,
-//                                  const vector<Edge *> &select_edges,
-//                                  const vector<Edge *> &all_edges,
-//                                  map<string, double> *data);
+
+  // Traverses the trellis with the Viterbi algorithm to find the best matching
+  // tag sequence and prints the results. If very_small_data_set is true, we
+  // also update saved_obs_seq_probs with newer P(observation sequences).
+  void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
+               const vector<string> observed_data, bool very_small_data_set,
+               const vector<double> saved_obs_seq_probs);
+  // Runs ForwardBackward 'num_iterations' times to determine best probabilities
+  // and then calls Viterbi(). Updates data's count keys (e.g., C(X,A)) in the
+  // process. If very_small_data_set is true, we also print organized data rows.
+  // 'select_edges' are the edges like P(A|X) that we want to update.
+  void ForwardBackwardAndViterbi(const int num_iterations,
+                                 const vector<Node *> &nodes,
+                                 const vector<Edge *> &select_edges,
+                                 const vector<Edge *> &all_edges,
+                                 map<string, double> *data,
+                                 bool very_small_data_set, Notation n,
+                                 const vector<string> observed_data,
+                                 const vector<string> tag_list,
+                                 vector<double> *saved_obs_seq_probs);
 }
 
 #endif  // TRELLIS_H_
