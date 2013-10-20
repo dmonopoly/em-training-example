@@ -1,5 +1,3 @@
-Current status: factoring out methods for general application. NLPHelper?
-
 ## What is this?
 Implementations of brute force EM, forward-backward EM, and Viterbi to find
 the best matching tag sequence for a simple observation of sequence.

@@ -14,7 +14,7 @@
 #include "TrellisAid.h"
 
 /*  SETTINGS  */
-#define DO_SHORT_SEQ true
+#define DO_SHORT_SEQ false
 #define NUMBER_ITERATIONS 50
 
 // Initial values.
@@ -62,7 +62,6 @@ Notation pYGivenY("P", {Y}, GIVEN_DELIM, {Y});
 // Objectives:
 // Short seq type.
 Notation pABA("P", {A,B,A}, SEQ_DELIM);
-// TODO: these are duplicated here... exist in NotConstants
 Notation pAGivenX("P", {A}, GIVEN_DELIM, {X});
 Notation pAGivenY("P", {A}, GIVEN_DELIM, {Y});
 Notation pBGivenX("P", {B}, GIVEN_DELIM, {X});
@@ -71,7 +70,6 @@ Notation cXA("C", {X, A}, AND_DELIM);  // "count of x and a"
 Notation cXB("C", {X, B}, AND_DELIM);
 Notation cYA("C", {Y, A}, AND_DELIM);
 Notation cYB("C", {Y, B}, AND_DELIM);
-// ENDTODO
 // Long seq type.
 Notation pLong("P", {A,A,A,B,A,A,B,A,A}, SEQ_DELIM);
 
