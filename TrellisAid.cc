@@ -1,4 +1,5 @@
 #include "TrellisAid.h"
+#include "NLPHelper.h"
 
 #define EXTRA_PRINTING false
 

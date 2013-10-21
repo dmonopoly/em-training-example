@@ -234,9 +234,6 @@ void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> t
   vector<Edge *> edges_to_update;
   vector<Edge *> all_edges; // for deletion later
 
-  vector<vector<string> > tag_sequences =
-      TagHandler::GenerateTagSequences(tag_list, observed_data.size());
-
   PrepareInitialData(&data);
   TrellisAid::BuildTrellis(&nodes, &edges_to_update, &all_edges, observed_data,
       tag_list);

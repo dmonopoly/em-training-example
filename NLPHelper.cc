@@ -1,3 +1,6 @@
+// Functions used primarily for the brute force method in TwoTagExample.cc.
+// Can decouple TagHandler from TrellisAid to make this not needed at all by
+// TrellisAid.
 #include "NLPHelper.h"
 #include "BasicHelper.h"
 
@@ -39,14 +42,6 @@ namespace NotationHelper {
 
   string SurroundWithParentheses(const string &predicate, const string &target) {
     return predicate + "(" + target + ")";
-  }
-}
-
-namespace GraphHelper {
-  void LinkNodeAndEdge(Node *src_node, Edge &edge, Node *dest_node) {
-    // Sets the nodes to be connected to the edge.
-    src_node->child_edges.push_back(&edge);
-    dest_node->parent_edges.push_back(&edge);
   }
 }
 

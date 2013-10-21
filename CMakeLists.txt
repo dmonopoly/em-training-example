@@ -15,6 +15,7 @@ add_library(basic_helper_lib BasicHelper.cc)
 add_library(notation_lib Notation.cc)
 add_library(edge_lib Edge.cc)
 add_library(nlp_helper_lib NLPHelper.cc)
+add_library(graph_aid_lib GraphAid.cc)
 add_library(trellis_aid_lib TrellisAid.cc)
 
 add_executable(${PROJECT_NAME} TwoTagExample.cc)
@@ -24,6 +25,7 @@ target_link_libraries(${PROJECT_NAME}
                       notation_lib
                       edge_lib
                       nlp_helper_lib
+                      graph_aid_lib
                       trellis_aid_lib)
 
 # Testing.

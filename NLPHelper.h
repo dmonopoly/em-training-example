@@ -30,10 +30,6 @@ namespace NotationHelper {
   string SurroundWithParentheses(const string &predicate, const string &target);
 }
 
-namespace GraphHelper {
-  void LinkNodeAndEdge(Node *src_node, Edge &edge, Node *dest_node);
-}
-
 // Notation Calculator methods that use the map of calculations.
 namespace Calculator {
   // Part of brute force method:

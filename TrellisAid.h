@@ -1,4 +1,3 @@
-// not used yet, in progress
 #ifndef TRELLIS_H_
 #define TRELLIS_H_
 
@@ -47,10 +46,10 @@ namespace TrellisAid {
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
-                                 bool very_small_data_set, Notation n,
-                                 const vector<string> observed_data,
-                                 const vector<string> tag_list,
-                                 vector<double> *saved_obs_seq_probs);
+                                 bool very_small_data_set=false, Notation n=NULL,
+                                 const vector<string> observed_data=NULL,
+                                 const vector<string> tag_list=NULL,
+                                 vector<double> *saved_obs_seq_probs=NULL);
 }
 
 #endif  // TRELLIS_H_
