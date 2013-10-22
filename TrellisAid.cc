@@ -204,6 +204,7 @@ namespace TrellisAid {
         for (int i = 1; i < nodes.size(); ++i) {
           double sum = 0;
           for (Edge *e : nodes[i]->parent_edges) {
+            cout << "here: " << e->repr() << endl;
             sum += alpha[e->src->repr()] * data->at(e->repr());
           }
           if (EXTRA_PRINTING){

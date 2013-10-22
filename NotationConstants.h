@@ -6,6 +6,7 @@
 #include <vector>
 
 namespace NotationConstants {
+  // TODO: could organize in vector so you can reliably read in all into data
   const Notation p1("P", {"1"});  // Auto-probability 1.
 }
 
