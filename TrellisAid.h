@@ -39,17 +39,19 @@ namespace TrellisAid {
   // Runs ForwardBackward 'num_iterations' times to determine best probabilities
   // and then calls Viterbi(). Updates data's count keys (e.g., C(X,A)) in the
   // process. If very_small_data_set is true, we also print organized data rows
-  // used all parameters that follow this bool. 'select_edges' are the edges
-  // like P(A|X) that we want to update.
+  // used all parameters that follow this bool. Otherwise we don't care for any
+  // of the params that follow this bool. 'select_edges' are the edges like
+  // P(A|X) that we want to update.
   void ForwardBackwardAndViterbi(const int num_iterations,
                                  const vector<Node *> &nodes,
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
-                                 bool very_small_data_set=false, Notation n=NULL,
-                                 const vector<string> observed_data=NULL,
-                                 const vector<string> tag_list=NULL,
-                                 vector<double> *saved_obs_seq_probs=NULL);
+                                 bool very_small_data_set=false,
+                                 Notation n=NotationConstants::p1,
+                                 const vector<string> observed_data={},
+                                 const vector<string> tag_list={},
+                                 vector<double> *saved_obs_seq_probs={});
 }
 
 #endif  // TRELLIS_H_

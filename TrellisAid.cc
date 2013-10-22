@@ -1,7 +1,7 @@
 #include "TrellisAid.h"
 #include "NLPHelper.h"
 
-#define EXTRA_PRINTING false
+#define EXTRA_PRINTING true
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -159,7 +159,8 @@ namespace TrellisAid {
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
-                                 bool very_small_data_set, Notation n,
+                                 bool very_small_data_set,
+                                 Notation n,
                                  const vector<string> observed_data,
                                  const vector<string> tag_list,
                                  vector<double> *saved_obs_seq_probs) {
@@ -196,21 +197,30 @@ namespace TrellisAid {
     alpha[nodes.at(0)->repr()] = 1;
     beta[nodes.at(nodes.size() - 1)->repr()] = 1;
     for (int iter_count = 0; iter_count < num_iterations; ++iter_count) {
-      // Forward pass. Assumes start node is at i = 0.
-      for (int i = 1; i < nodes.size(); ++i) {
-        double sum = 0;
-        for (Edge *e : nodes[i]->parent_edges) {
-          sum += alpha[e->src->repr()] * data->at(e->repr());
-        }
-        if (EXTRA_PRINTING){
-          cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() <<
-              ": " << sum << endl;
-        }
-        alpha[nodes[i]->repr()] = sum;
-      }
       if (EXTRA_PRINTING)
-        cout << endl;
+        cout << "Forward pass... ";
+      // Forward pass. Assumes start node is at i = 0.
+      try {
+        for (int i = 1; i < nodes.size(); ++i) {
+          double sum = 0;
+          for (Edge *e : nodes[i]->parent_edges) {
+            sum += alpha[e->src->repr()] * data->at(e->repr());
+          }
+          if (EXTRA_PRINTING){
+            cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() <<
+                ": " << sum << endl;
+          }
+          alpha[nodes[i]->repr()] = sum;
+        }
+      } catch (out_of_range &e) {
+        cerr << "Out of range error in forward pass: " << e.what() << endl;
+      } catch (exception &e) {
+        cerr << "Issue in forward pass: " << e.what() << endl;
+      }
 
+      if (EXTRA_PRINTING) {
+        cout << "Backward pass... ";
+      }
       // Backward pass. Assumes end node is at i = size - 1.
       for (int i = nodes.size() - 2; i >= 0; --i) {
         double sum = 0;
@@ -224,13 +234,16 @@ namespace TrellisAid {
         beta[nodes[i]->repr()] = sum;
       }
 
-      if (EXTRA_PRINTING)
-        cout << endl;
+      if (EXTRA_PRINTING) {
+        cout << "Counting pass... " << endl;
+      }
 
-      // Counting pass. First reset and then update the counts. 
-      // The count key can be determined by looking at any node this select
-      // edge is incident on. We take that node's 'tag' and 'word' fields. For
-      // count_keys, we follow the convention of C(tag, word) (e.g., C(X,A)).
+      // Counting pass.  The count key can be determined by looking at any node
+      // this select edge is incident on. We take that node's 'tag' and 'word'
+      // fields. For count_keys, we follow the convention of C(tag, word) (e.g.,
+      // C(X,A)).
+
+      // First reset the counts.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word},
@@ -294,8 +307,9 @@ namespace TrellisAid {
         OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
       }
     }
-    if (EXTRA_PRINTING)
+    if (EXTRA_PRINTING) {
       cout << "Done with Forward-Backward. Proceeding to Viterbi." << endl;
+    }
 
     // By this point, P(A|X), P(A|Y), etc. have been maximized thanks to alpha
     // and beta values in the forward-backward passes. The counting pass
