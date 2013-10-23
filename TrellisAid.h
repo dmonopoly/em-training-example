@@ -47,11 +47,11 @@ namespace TrellisAid {
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
+                                 const vector<string> observed_data,
                                  bool very_small_data_set=false,
                                  Notation n=NotationConstants::p1,
-                                 const vector<string> observed_data={},
                                  const vector<string> tag_list={},
-                                 vector<double> *saved_obs_seq_probs={});
+                                 vector<double> *saved_obs_seq_probs=NULL);
 }
 
 #endif  // TRELLIS_H_

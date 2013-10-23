@@ -1,7 +1,7 @@
 #include "TrellisAid.h"
 #include "NLPHelper.h"
 
-#define EXTRA_PRINTING true
+#define EXTRA_PRINTING false
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -98,41 +98,74 @@ namespace TrellisAid {
     map<string, string> best_path;
 
     // Set all nodes except start to default low value.
+    if (EXTRA_PRINTING) {
+      cout << "Initializing optimal values." << endl;
+    }
     for (Node *n : nodes) {
       opt.emplace(n->repr(), 0);
     }
     opt[nodes.front()->repr()] = 1;
 
     // Run through trellis. Topological order assumed.
+    if (EXTRA_PRINTING) {
+      cout << "About to run through trellis." << endl;
+    }
     for (int i = 0; i < nodes.size(); ++i) {
       Node *current_node = nodes.at(i);
       for (Edge *e : current_node->child_edges) {
         Node *next = e->dest;
-        double new_val = opt.at(current_node->repr()) * data.at(e->repr());
-        if (new_val > opt.at(next->repr())) {
-          opt[next->repr()] = new_val;
-          best_path[next->repr()] = current_node->repr();
+        try {
+          double new_val = opt.at(current_node->repr()) * data.at(e->repr());
+          if (new_val > opt.at(next->repr())) {
+            opt[next->repr()] = new_val;
+            best_path[next->repr()] = current_node->repr();
+          }
+        } catch (out_of_range &e) {
+          cerr << "Out of range error in Viterbi while going through trellis: "
+            << e.what() << endl;
         }
       }
     }
+    if (EXTRA_PRINTING) {
+      cout << "Done running through trellis." << endl;
+    }
 
     // Output best result following backpointer map.
+    if (EXTRA_PRINTING) {
+      cout << "Printing result from backpointer map." << endl;
+    }
     vector<string> best_tag_seq;
     vector<string> assoc_word_seq;
     string next_node_repr = nodes.back()->repr();
     for (int i = 0; i < observed_data.size(); ++i) {
-      string name = best_path.at(next_node_repr);
+      string name;
+      try {
+        name = best_path.at(next_node_repr);
+      } catch (out_of_range &e) {
+        cerr << "Out of range error in Viterbi while getting the name: " <<
+          e.what() << endl;
+      }
       string tag = name.substr(0, 1);
       string word = name.substr(1, 1);
       best_tag_seq.push_back(tag);
       assoc_word_seq.push_back(word);
-      next_node_repr = best_path.at(name); // Skip sister node.
+      try {
+        next_node_repr = best_path.at(name); // Skip sister node.
+      } catch (out_of_range &e) {
+        cerr << "Out of range error in Viterbi while getting next " <<
+          "node from best path: " << e.what() << endl;
+      }
     }
     // Reverse these because they were retrieved backwards.
     reverse(best_tag_seq.begin(), best_tag_seq.end());
     reverse(assoc_word_seq.begin(), assoc_word_seq.end());
 
-    double best_prob_pTAndW = opt.at(nodes.back()->repr());
+    double best_prob_pTAndW;
+    try {
+      best_prob_pTAndW = opt.at(nodes.back()->repr());
+    } catch (out_of_range &e) {
+      cerr << "Couldn't get best_prob_pTAndW: " << e.what() << endl;
+    }
     Notation n_best_match_pTAndW("P", assoc_word_seq, Notation::AND_DELIM,
         best_tag_seq);
     Notation n_best_match_pTGivenW("P", best_tag_seq, Notation::GIVEN_DELIM,
@@ -140,7 +173,11 @@ namespace TrellisAid {
     cout << "\n--Viterbi results--\n";
     stringstream ss;
     for (int i = 0; i < best_tag_seq.size(); ++i) {
-      ss << best_tag_seq.at(i);
+      try {
+        ss << best_tag_seq.at(i);
+      } catch (...) {
+        cerr << "I don't even know.\n";
+      }
     }
     string best_match_pTAndW_str = ss.str();
     cout << "The highest probability found belongs to " << n_best_match_pTAndW
@@ -159,9 +196,9 @@ namespace TrellisAid {
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
+                                 const vector<string> observed_data,
                                  bool very_small_data_set,
                                  Notation n,
-                                 const vector<string> observed_data,
                                  const vector<string> tag_list,
                                  vector<double> *saved_obs_seq_probs) {
     if (EXTRA_PRINTING)
@@ -204,7 +241,6 @@ namespace TrellisAid {
         for (int i = 1; i < nodes.size(); ++i) {
           double sum = 0;
           for (Edge *e : nodes[i]->parent_edges) {
-            cout << "here: " << e->repr() << endl;
             sum += alpha[e->src->repr()] * data->at(e->repr());
           }
           if (EXTRA_PRINTING){
@@ -318,8 +354,13 @@ namespace TrellisAid {
     // update the "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use
     // Viterbi to find the highest-probability path based on the collected
     // probabilities.
-    TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-                        *saved_obs_seq_probs);
+    if (saved_obs_seq_probs != NULL)
+      TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
+          *saved_obs_seq_probs);
+    else {
+      TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
+          {});
+    }
   }
 } // end namespace TrellisAid
 
