@@ -123,6 +123,7 @@ namespace TrellisAid {
         } catch (out_of_range &e) {
           cerr << "Out of range error in Viterbi while going through trellis: "
             << e.what() << endl;
+          exit(0);
         }
       }
     }
@@ -142,7 +143,7 @@ namespace TrellisAid {
       try {
         name = best_path.at(next_node_repr);
       } catch (out_of_range &e) {
-        cerr << "Out of range error in Viterbi while getting the name: " <<
+        cerr << "Out of range error in Viterbi while getting name: " <<
           e.what() << endl;
       }
       string tag = name.substr(0, 1);
@@ -161,11 +162,7 @@ namespace TrellisAid {
     reverse(assoc_word_seq.begin(), assoc_word_seq.end());
 
     double best_prob_pTAndW;
-    try {
-      best_prob_pTAndW = opt.at(nodes.back()->repr());
-    } catch (out_of_range &e) {
-      cerr << "Couldn't get best_prob_pTAndW: " << e.what() << endl;
-    }
+    best_prob_pTAndW = opt.at(nodes.back()->repr());
     Notation n_best_match_pTAndW("P", assoc_word_seq, Notation::AND_DELIM,
         best_tag_seq);
     Notation n_best_match_pTGivenW("P", best_tag_seq, Notation::GIVEN_DELIM,
@@ -173,11 +170,7 @@ namespace TrellisAid {
     cout << "\n--Viterbi results--\n";
     stringstream ss;
     for (int i = 0; i < best_tag_seq.size(); ++i) {
-      try {
-        ss << best_tag_seq.at(i);
-      } catch (...) {
-        cerr << "I don't even know.\n";
-      }
+      ss << best_tag_seq.at(i);
     }
     string best_match_pTAndW_str = ss.str();
     cout << "The highest probability found belongs to " << n_best_match_pTAndW
@@ -197,10 +190,9 @@ namespace TrellisAid {
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
                                  const vector<string> observed_data,
-                                 bool very_small_data_set,
-                                 Notation n,
-                                 const vector<string> tag_list,
-                                 vector<double> *saved_obs_seq_probs) {
+                                 Notation nObsSeq,
+                                 vector<double> *saved_obs_seq_probs,
+                                 bool very_small_data_set) {
     if (EXTRA_PRINTING)
       cout << "Beginning Forward-Backward." << endl;
     // Key: count_key repr, like "C(X,A)". Value: true if already used. Main
@@ -208,9 +200,10 @@ namespace TrellisAid {
     // pass, but also used in output setup.
     unordered_map<string, bool> already_used;
 
+    // Push back initial 0.
+    saved_obs_seq_probs->push_back((*data)[nObsSeq.repr()]);
     vector<Notation> rowOfNots;
     if (very_small_data_set) {
-      saved_obs_seq_probs->push_back((*data)[n.repr()]); // push back initial 0
       // Prepare row of Notation strings for nice column-organized output.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
@@ -222,7 +215,7 @@ namespace TrellisAid {
           already_used[n_count_key.repr()] = true;
         }
       }
-      rowOfNots.push_back(n);
+      rowOfNots.push_back(nObsSeq);
       OutputHelper::PrintHeader(rowOfNots);
       OutputHelper::PrintDataRow(0, rowOfNots, *data);
       already_used.clear();
@@ -328,20 +321,28 @@ namespace TrellisAid {
                              total_fract_counts.at(e->dest->tag);
       }
 
-      // Do not execute the following unless we are dealing with a very small
-      // tag set and vocabulary. For real (large) texts, this would take too
-      // long - but it's nice to have this to test on small self-defined texts.
-      if (very_small_data_set) {
-        vector<vector<string> > tag_sequences =
-          TagHandler::GenerateTagSequences(tag_list, observed_data.size());
+      // Update probability of observed data sequence. This should increase
+      // with each iteration.
+      (*data)[nObsSeq.repr()] = alpha[nodes.back()->repr()];
+      saved_obs_seq_probs->push_back((*data)[nObsSeq.repr()]);
 
-        // The ultimate value we want to maximize. This should increase with
-        // each iteration.
-        if (EXTRA_PRINTING)
-          cout << endl << Basic::Tab(1) << "Updating probabilities." << endl;
-        Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
-        saved_obs_seq_probs->push_back((*data)[n.repr()]);
+      // If we have a small data set, print neatly organized columns of output.
+      // Do not execute the following unless we are dealing with a very small
+      // tag set and vocabulary. For real (large) texts, the resulting output
+      // table would have too many columns.
+      if (very_small_data_set) {
         OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
+      } else {
+        // Print viterbi.
+        if (saved_obs_seq_probs != NULL)
+          TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
+              *saved_obs_seq_probs);
+        else {
+          TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
+              {});
+        }
+        // Print P(obs).
+        cout << alpha[nodes.back()->repr()] << endl;
       }
     }
     if (EXTRA_PRINTING) {
@@ -353,7 +354,7 @@ namespace TrellisAid {
     // collected fractional counts of e.g. C(X|A), which were then used to
     // update the "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use
     // Viterbi to find the highest-probability path based on the collected
-    // probabilities.
+    // probabilities and print the result.
     if (saved_obs_seq_probs != NULL)
       TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
           *saved_obs_seq_probs);

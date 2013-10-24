@@ -51,11 +51,12 @@ namespace Calculator {
   double NormProbFactor(const double &normalizedProb, const Notation &pn,
                         const Notation &cn);
 
-  // Should only be used by brute force.
+  // Should only be used by brute force. In Viterbi, alpha(end node) stores the
+  // updated probability.
   // Pre: Notation is like P(ABA) (empty second list), and data has
   // appropriate key-value pairs set.
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}
-  // P(t1,t2,t3)P(ABA|t1,t2,t3).
+  // P(t1,t2,t3)P(ABA|t1,t2,t3), by iterating over all possible tag sequences.
   void UpdateProbOfObsDataSeq(const Notation &observedNotation,
                               map<string, double> *data,
                               const vector<vector<string> > &tagSequences);

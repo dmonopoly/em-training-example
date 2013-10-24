@@ -42,16 +42,17 @@ namespace TrellisAid {
   // used all parameters that follow this bool. Otherwise we don't care for any
   // of the params that follow this bool. 'select_edges' are the edges like
   // P(A|X) that we want to update.
+  // TODO: remove Notation parameter since you can construct this from
+  // observed_data. This requires changing the organization of TwoTagExample.
   void ForwardBackwardAndViterbi(const int num_iterations,
                                  const vector<Node *> &nodes,
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<string, double> *data,
                                  const vector<string> observed_data,
-                                 bool very_small_data_set=false,
-                                 Notation n=NotationConstants::p1,
-                                 const vector<string> tag_list={},
-                                 vector<double> *saved_obs_seq_probs=NULL);
+                                 Notation nObsSeq,
+                                 vector<double> *saved_obs_seq_probs,
+                                 bool very_small_data_set);
 }
 
 #endif  // TRELLIS_H_
