@@ -1,7 +1,7 @@
 #include "TrellisAid.h"
 #include "NLPHelper.h"
 
-#define EXTRA_PRINTING false
+#define EXTRA_PRINTING true
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -234,6 +234,8 @@ namespace TrellisAid {
         for (int i = 1; i < nodes.size(); ++i) {
           double sum = 0;
           for (Edge *e : nodes[i]->parent_edges) {
+            //tmp
+//             cout << e->repr() << endl;
             sum += alpha[e->src->repr()] * data->at(e->repr());
           }
           if (EXTRA_PRINTING){
@@ -244,6 +246,7 @@ namespace TrellisAid {
         }
       } catch (out_of_range &e) {
         cerr << "Out of range error in forward pass: " << e.what() << endl;
+        return 1;
       } catch (exception &e) {
         cerr << "Issue in forward pass: " << e.what() << endl;
       }
@@ -342,7 +345,7 @@ namespace TrellisAid {
               {});
         }
         // Print P(obs).
-        cout << alpha[nodes.back()->repr()] << endl;
+        cout << "P(observed sequence): " << alpha[nodes.back()->repr()] << endl;
       }
     }
     if (EXTRA_PRINTING) {
