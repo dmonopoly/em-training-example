@@ -16,8 +16,8 @@ struct Edge {
   Notation notation;
   Node *src, *dest;
   Edge(Notation n, Node *src, Node *dest);
-  string repr() {
-    return notation.repr();
+  Notation repr() {
+    return notation;
   }
 };
 

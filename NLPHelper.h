@@ -21,7 +21,7 @@ struct Edge;
 namespace OutputHelper {
   void PrintHeader(const vector<Notation> &nots);
   void PrintDataRow(int iteration, const vector<Notation> &nots,
-                    const map<string, double> &data);
+                    const map<Notation, double> &data);
 }
 
 namespace NotationHelper {
@@ -41,8 +41,8 @@ namespace Calculator {
   // completion. Essentially, P(t, w), with AND.
   // Post: Normalized probability for the data completion represented by
   // Notation n - i.e., P(t, w).
-  double ComputeUnnormalizedProbability(const Notation &n, const map<string,
-      double> &data);
+  double ComputeUnnormalizedProbability(const Notation &n,
+                                        const map<Notation, double> &data);
 
   // Part of brute force method:
   // Pre: pn's 'first' and 'second' values have same length. pn is like
@@ -61,7 +61,7 @@ namespace Calculator {
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}
   // P(t1,t2,t3)P(ABA|t1,t2,t3), by iterating over all possible tag sequences.
   void UpdateProbOfObsDataSeq(const Notation &observedNotation,
-                              map<string, double> *data,
+                              map<Notation, double> *data,
                               const vector<vector<string> > &tagSequences);
 }
 

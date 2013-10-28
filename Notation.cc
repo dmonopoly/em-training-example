@@ -16,7 +16,7 @@ Notation::Notation(string predicate, initializer_list<string> first_args) {
   this->first_delimiter = Notation::SEQ_DELIM;
   this->second_delimiter = Notation::NULL_DELIM;
 
-  this->repr = this->repr();
+  this->repr_ = this->repr();
 }
 Notation::Notation(string predicate, vector<string> first) {
   this->predicate = predicate;
@@ -25,7 +25,7 @@ Notation::Notation(string predicate, vector<string> first) {
   this->first_delimiter = Notation::SEQ_DELIM;
   this->second_delimiter = Notation::NULL_DELIM;
 
-  this->repr = this->repr();
+  this->repr_ = this->repr();
 }
 Notation::Notation(string predicate, initializer_list<string> first_args, string first_delim) {
   this->predicate = predicate;
@@ -35,7 +35,7 @@ Notation::Notation(string predicate, initializer_list<string> first_args, string
   this->first_delimiter = first_delim;
   this->second_delimiter = Notation::NULL_DELIM;
 
-  this->repr = this->repr();
+  this->repr_ = this->repr();
 }
 Notation::Notation(string predicate, vector<string> first, string first_delim) {
   this->predicate = predicate;
@@ -44,7 +44,7 @@ Notation::Notation(string predicate, vector<string> first, string first_delim) {
   this->first_delimiter = first_delim;
   this->second_delimiter = Notation::NULL_DELIM;
 
-  this->repr = this->repr();
+  this->repr_ = this->repr();
 }
 Notation::Notation(string predicate, initializer_list<string> first_args,
            string delimiter, initializer_list<string> second_args) {
@@ -57,7 +57,7 @@ Notation::Notation(string predicate, initializer_list<string> first_args,
   this->first_delimiter = Notation::SEQ_DELIM;
   this->second_delimiter = Notation::SEQ_DELIM;
 
-  this->repr = this->repr();
+  this->repr_ = this->repr();
 }
 Notation::Notation(string predicate, vector<string> first, string delimiter,
                    vector<string> second) {
@@ -68,11 +68,11 @@ Notation::Notation(string predicate, vector<string> first, string delimiter,
   this->first_delimiter = Notation::SEQ_DELIM;
   this->second_delimiter = Notation::SEQ_DELIM;
 
-  this->repr = this->repr();
+  this->repr_ = this->repr();
 }
 
 string Notation::repr() const {
-  if (this->repr == NULL || this->repr.empty()) {
+  if (this->repr_.empty()) {
     stringstream ss;
     ss << this->predicate << "(";
     for (int i = 0; i < this->first.size()-1; ++i)
@@ -86,10 +86,9 @@ string Notation::repr() const {
       ss << this->second.back();
     }
     ss << ")";
-    this->repr = ss.str();
     return ss.str();
   } else {
-    return this->repr;
+    return this->repr_;
   }
 }
 

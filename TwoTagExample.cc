@@ -73,32 +73,32 @@ Notation cYB("C", {Y, B}, AND_DELIM);
 // Long seq type.
 Notation pLong("P", {A,A,A,B,A,A,B,A,A}, SEQ_DELIM);
 
-void PrepareInitialData(map<string, double> *data) {
+void PrepareInitialData(map<Notation, double> *data) {
   // Given data.
-  data->emplace(p1.repr(), 1);
-  data->emplace(pX.repr(), .6);
-  data->emplace(pY.repr(), .4);
-  data->emplace(pXGivenX.repr(), .6);
-  data->emplace(pYGivenX.repr(), .4);
-  data->emplace(pXGivenY.repr(), .9);
-  data->emplace(pYGivenY.repr(), .1);
+  data->emplace(p1, 1);
+  data->emplace(pX, .6);
+  data->emplace(pY, .4);
+  data->emplace(pXGivenX, .6);
+  data->emplace(pYGivenX, .4);
+  data->emplace(pXGivenY, .9);
+  data->emplace(pYGivenY, .1);
 
   // Initial value for unknowns. We improve upon these.
-  data->emplace(pAGivenX.repr(), INIT_VAL_pAGivenX);
-  data->emplace(pBGivenX.repr(), 1 - INIT_VAL_pAGivenX);
-  data->emplace(pAGivenY.repr(), INIT_VAL_pAGivenY);
-  data->emplace(pBGivenY.repr(), 1 - INIT_VAL_pAGivenY);
+  data->emplace(pAGivenX, INIT_VAL_pAGivenX);
+  data->emplace(pBGivenX, 1 - INIT_VAL_pAGivenX);
+  data->emplace(pAGivenY, INIT_VAL_pAGivenY);
+  data->emplace(pBGivenY, 1 - INIT_VAL_pAGivenY);
 
   // Initial counts can be set to 0.
-  data->emplace(cXA.repr(), 0);
-  data->emplace(cYA.repr(), 0);
-  data->emplace(cXB.repr(), 0);
-  data->emplace(cYB.repr(), 0);
+  data->emplace(cXA, 0);
+  data->emplace(cYA, 0);
+  data->emplace(cXB, 0);
+  data->emplace(cYB, 0);
 }
 
-void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
+void ComputeDataWithBruteForce(map<Notation, double> *data, const Notation &n,
                                const vector<vector<string> > &tag_sequences) {
-  saved_obs_seq_probs.push_back((*data)[n.repr()]); // push back initial 0
+  saved_obs_seq_probs.push_back((*data)[n]); // push back initial 0
   vector<Notation> rowOfNots{cXA, cXB, pAGivenX, pBGivenX, cYA, cYB, pAGivenY,
     pBGivenY, n};
   OutputHelper::PrintHeader(rowOfNots);
@@ -106,10 +106,10 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
 
   for (int iter_count = 0; iter_count < NUMBER_ITERATIONS; ++iter_count) {
     // Reset counts to zero.
-    (*data)[cXA.repr()] = 0;
-    (*data)[cXB.repr()] = 0;
-    (*data)[cYA.repr()] = 0;
-    (*data)[cYB.repr()] = 0;
+    (*data)[cXA] = 0;
+    (*data)[cXB] = 0;
+    (*data)[cYA] = 0;
+    (*data)[cYB] = 0;
 
     // Get norm P(t,w) and counts.
     double sum_of_all_pTW = 0;  // Use this as divisor in normalization.
@@ -118,7 +118,7 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
       double unnormalized_prob = Calculator::ComputeUnnormalizedProbability(pTW,
           *data);
       sum_of_all_pTW += unnormalized_prob;
-      (*data)[pTW.repr()] = unnormalized_prob;
+      (*data)[pTW] = unnormalized_prob;
     }
     for (vector<string> tags : tag_sequences) {
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
@@ -127,40 +127,40 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
       // access to these values, store P(tag sequence|observation seq) (like
       // P(YXY|ABA)), which is P(obs seq \cap tag seq) / P(obs seq). Note that
       // P(obs seq) by total probability is sum_of_all_pTW.
-      double normalized_prob = (*data)[pTW.repr()]/sum_of_all_pTW;
+      double normalized_prob = (*data)[pTW]/sum_of_all_pTW;
       Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
-      (*data)[pTGivenW.repr()] = normalized_prob;
+      (*data)[pTGivenW] = normalized_prob;
 
       // Get counts.
-      (*data)[cXA.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
+      (*data)[cXA] += Calculator::NormProbFactor(normalized_prob, pTW,
           cXA);
-      (*data)[cXB.repr()] +=
+      (*data)[cXB] +=
         Calculator::NormProbFactor(normalized_prob, pTW, cXB);
-      (*data)[cYA.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
+      (*data)[cYA] += Calculator::NormProbFactor(normalized_prob, pTW,
           cYA);
-      (*data)[cYB.repr()] += Calculator::NormProbFactor(normalized_prob, pTW,
+      (*data)[cYB] += Calculator::NormProbFactor(normalized_prob, pTW,
           cYB);
     }
     // Update the unknown probabilities that we want to find. Use them in the
     // next iteration.
-    (*data)[pAGivenX.repr()] = (*data)[cXA.repr()]/( (*data)[cXA.repr()] +
-        (*data)[cXB.repr()] );
-    (*data)[pBGivenX.repr()] = (*data)[cXB.repr()]/( (*data)[cXB.repr()] +
-        (*data)[cXA.repr()] );
-    (*data)[pAGivenY.repr()] = (*data)[cYA.repr()]/( (*data)[cYA.repr()] +
-        (*data)[cYB.repr()] );
-    (*data)[pBGivenY.repr()] = (*data)[cYB.repr()]/( (*data)[cYB.repr()] +
-        (*data)[cYA.repr()] );
+    (*data)[pAGivenX] = (*data)[cXA]/( (*data)[cXA] +
+        (*data)[cXB] );
+    (*data)[pBGivenX] = (*data)[cXB]/( (*data)[cXB] +
+        (*data)[cXA] );
+    (*data)[pAGivenY] = (*data)[cYA]/( (*data)[cYA] +
+        (*data)[cYB] );
+    (*data)[pBGivenY] = (*data)[cYB]/( (*data)[cYB] +
+        (*data)[cYA] );
 
     // The ultimate value we want to maximize. This should increase with each
     // iteration.
     Calculator::UpdateProbOfObsDataSeq(n, data, tag_sequences);
-    saved_obs_seq_probs.push_back((*data)[n.repr()]);
+    saved_obs_seq_probs.push_back((*data)[n]);
     OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
   }
 }
 
-void OutputResultsForBruteForce(map<string, double> &data, Notation n,
+void OutputResultsForBruteForce(map<Notation, double> &data, Notation n,
                                 const vector<vector<string> > &tag_sequences) {
   cout << "\n--Results based on " << NUMBER_ITERATIONS << " iterations--\n";
   ofstream fout("observed_data_probabilities.txt");
@@ -170,29 +170,31 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n,
   cout << "Values of " << n << " have been written to "
     "observed_data_probabilities.txt." << endl << endl;
 
-  cout << "Final " << n << ": " << data[n.repr()] << endl;
-  cout << "Final " << pAGivenX << ": " << data[pAGivenX.repr()] << endl;
-  cout << "Final " << pBGivenX << ": " << data[pBGivenX.repr()] << endl;
-  cout << "Final " << pAGivenY << ": " << data[pAGivenY.repr()] << endl;
-  cout << "Final " << pBGivenY << ": " << data[pBGivenY.repr()] << endl << endl;
+  cout << "Final " << n << ": " << data[n] << endl;
+  cout << "Final " << pAGivenX << ": " << data[pAGivenX] << endl;
+  cout << "Final " << pBGivenX << ": " << data[pBGivenX] << endl;
+  cout << "Final " << pAGivenY << ": " << data[pAGivenY] << endl;
+  cout << "Final " << pBGivenY << ": " << data[pBGivenY] << endl << endl;
 
   cout << "Determining the best matching tag sequence:\n";
   vector<string> tags = tag_sequences.at(0);
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
   Notation *best_pTGivenW = NULL;
-  string best_match_pTAndW_key = pTW_first.repr();
-  string best_match_pTGivenW_key;
+  Notation best_match_pTAndW_key = pTW_first;
+//   string best_match_pTAndW_key = pTW_first.repr();
+  Notation best_match_pTGivenW_key;
+//   string best_match_pTGivenW_key;
   for (vector<string> tags : tag_sequences) {
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
     Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
 
     if (DO_SHORT_SEQ) { // Only print for short seq; long seq has too many.
-      cout << pTW << ": " << data[pTW.repr()] << ", " << pTGivenW << ": " <<
-        data[pTGivenW.repr()] << endl;
+      cout << pTW << ": " << data[pTW] << ", " << pTGivenW << ": " <<
+        data[pTGivenW] << endl;
     }
-    if (data[pTW.repr()] > data[best_match_pTAndW_key]) {
-      best_match_pTAndW_key = pTW.repr();
-      best_match_pTGivenW_key = pTGivenW.repr();
+    if (data[pTW] > data[best_match_pTAndW_key]) {
+      best_match_pTAndW_key = pTW;
+      best_match_pTGivenW_key = pTGivenW;
       delete best_pTGivenW;
       // Same as pTGivenW. Saved for future reference.
       best_pTGivenW = new Notation("P", tags, GIVEN_DELIM, OBSERVED_DATA);
@@ -208,7 +210,7 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n,
 }
 
 void RunBruteForceEM() {
-  map<string, double> data;  // Storage for probabilities and counts.
+  map<Notation, double> data;  // Storage for probabilities and counts.
   PrepareInitialData(&data);
 
   vector<vector<string> > tag_sequences =
@@ -229,7 +231,7 @@ void RunBruteForceEM() {
 }
 
 void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> tag_list) {
-  map<string, double> data;  // Storage for probabilities and counts.
+  map<Notation, double> data;  // Storage for probabilities and counts.
   vector<Node *> nodes;
   vector<Edge *> edges_to_update;
   vector<Edge *> all_edges; // for deletion later

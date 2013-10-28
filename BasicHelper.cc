@@ -80,7 +80,7 @@ vector<string>& Split(const string &s, char delim, vector<string> &elems) {
 
 vector<string> Split(const string &s, char delim) {
     vector<string> elems;
-    split(s, delim, elems);
+    Split(s, delim, elems);
     return elems;
 }
 }  // namespace Basic

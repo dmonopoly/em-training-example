@@ -88,7 +88,7 @@ namespace TrellisAid {
     }
   }
 
-  void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
+  void Viterbi(const map<Notation, double> &data, const vector<Node *> &nodes,
                const vector<string> observed_data, bool very_small_data_set,
                const vector<double> saved_obs_seq_probs) {
     // Key: string representation of node; Value: best value of P(t, w) so far
@@ -188,20 +188,20 @@ namespace TrellisAid {
                                  const vector<Node *> &nodes,
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
-                                 map<string, double> *data,
+                                 map<Notation, double> *data,
                                  const vector<string> observed_data,
                                  Notation nObsSeq,
                                  vector<double> *saved_obs_seq_probs,
                                  bool very_small_data_set) {
     if (EXTRA_PRINTING)
       cout << "Beginning Forward-Backward." << endl;
-    // Key: count_key repr, like "C(X,A)". Value: true if already used. Main
-    // purpose is for checking while accumulating fractional counts in counting
-    // pass, but also used in output setup.
-    unordered_map<string, bool> already_used;
+    // Value: true if already used. Main purpose is for checking while
+    // accumulating fractional counts in counting pass, but also used in output
+    // setup.
+    map<Notation, bool> already_used;
 
     // Push back initial 0.
-    saved_obs_seq_probs->push_back((*data)[nObsSeq.repr()]);
+    saved_obs_seq_probs->push_back((*data)[nObsSeq]);
     vector<Notation> rowOfNots;
     if (very_small_data_set) {
       // Prepare row of Notation strings for nice column-organized output.
@@ -209,10 +209,10 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word},
             Notation::AND_DELIM);
-        if (!already_used[n_count_key.repr()]) {
+        if (!already_used[n_count_key]) {
           rowOfNots.push_back(n_count_key);
           rowOfNots.push_back(e->notation);
-          already_used[n_count_key.repr()] = true;
+          already_used[n_count_key] = true;
         }
       }
       rowOfNots.push_back(nObsSeq);
@@ -281,7 +281,7 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word},
                              Notation::AND_DELIM);
-        (*data)[n_count_key.repr()] = 0;
+        (*data)[n_count_key] = 0;
       }
 
       // Key: tag. Value: total fractional count associated with that tag.
@@ -291,9 +291,9 @@ namespace TrellisAid {
       // probabilities later.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word},
+        Notation count_key("C", {e->dest->tag, e->dest->word},
                              Notation::AND_DELIM);
-        string count_key = n_count_key.repr();
+//         string count_key = n_count_key.repr();
         if (EXTRA_PRINTING) {
           cout << Basic::Tab(1) << "Getting count key from edge " << e->repr()
               << ": " << count_key << endl;
@@ -320,14 +320,14 @@ namespace TrellisAid {
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
-        (*data)[e->repr()] = (*data)[n_count_key.repr()] /
+        (*data)[e->repr()] = (*data)[n_count_key] /
                              total_fract_counts.at(e->dest->tag);
       }
 
       // Update probability of observed data sequence. This should increase
       // with each iteration.
-      (*data)[nObsSeq.repr()] = alpha[nodes.back()->repr()];
-      saved_obs_seq_probs->push_back((*data)[nObsSeq.repr()]);
+      (*data)[nObsSeq] = alpha[nodes.back()->repr()];
+      saved_obs_seq_probs->push_back((*data)[nObsSeq]);
 
       // If we have a small data set, print neatly organized columns of output.
       // Do not execute the following unless we are dealing with a very small

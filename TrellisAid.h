@@ -33,7 +33,7 @@ namespace TrellisAid {
   // Traverses the trellis with the Viterbi algorithm to find the best matching
   // tag sequence and prints the results. If very_small_data_set is true, we
   // also update saved_obs_seq_probs with newer P(observation sequences).
-  void Viterbi(const map<string, double> &data, const vector<Node *> &nodes,
+  void Viterbi(const map<Notation, double> &data, const vector<Node *> &nodes,
                const vector<string> observed_data, bool very_small_data_set,
                const vector<double> saved_obs_seq_probs);
   // Runs ForwardBackward 'num_iterations' times to determine best probabilities
@@ -48,7 +48,7 @@ namespace TrellisAid {
                                  const vector<Node *> &nodes,
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
-                                 map<string, double> *data,
+                                 map<Notation, double> *data,
                                  const vector<string> observed_data,
                                  Notation nObsSeq,
                                  vector<double> *saved_obs_seq_probs,

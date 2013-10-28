@@ -11,7 +11,7 @@ using namespace std;
 
 class Notation {
  private:
-  string repr;
+  string repr_;
  public:
   static const string GIVEN_DELIM;
   static const string AND_DELIM;
@@ -50,7 +50,7 @@ class Notation {
   string repr() const;
 
   bool operator <(const Notation& rhs) const {
-    return this->repr() < rhs->repr();
+    return this->repr() < rhs.repr();
   }
 };
 ostream& operator<<(ostream& out, const Notation& n);
