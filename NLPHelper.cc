@@ -43,6 +43,10 @@ namespace NotationHelper {
   string SurroundWithParentheses(const string &predicate, const string &target) {
     return predicate + "(" + target + ")";
   }
+
+  void ReplaceSymbol(const string &old_s, const string &new_s, string *n_repr) {
+
+  }
 }
 
 namespace Calculator {

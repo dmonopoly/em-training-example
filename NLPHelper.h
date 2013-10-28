@@ -1,4 +1,4 @@
-// Helper functions for brute force and efficient EM + Viterbi.
+// Helper functions for brute force.
 #ifndef HELPER_H_
 #define HELPER_H_
 
@@ -28,6 +28,9 @@ namespace NotationHelper {
   // Returns a string that is the concatentation of all strings in v.
   string Combine(const vector<string> &v);
   string SurroundWithParentheses(const string &predicate, const string &target);
+  // TODO: ReplaceSymbol is the only method here also used by viterbi. Extract
+  // NotHelper out to its own file.
+  void ReplaceSymbol(const string &old_s, const string &new_s, string *n_repr);
 }
 
 // Notation Calculator methods that use the map of calculations.
@@ -52,7 +55,7 @@ namespace Calculator {
                         const Notation &cn);
 
   // Should only be used by brute force. In Viterbi, alpha(end node) stores the
-  // updated probability.
+  // updated probability, so this isn't needed.
   // Pre: Notation is like P(ABA) (empty second list), and data has
   // appropriate key-value pairs set.
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}

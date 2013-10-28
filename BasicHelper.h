@@ -39,6 +39,13 @@ bool AskAndDecide(string question);
 // Method that directly makes a string all lowercase.
 void ToLowerCase(string &s);
 
+// Replace all occurrences of string within string.
+void ReplaceAll(string& str, const string& from, const string& to);
+
+// Split a string about a delimiter and store in vector.
+vector<string> &Split(const string &s, char delim, vector<string> &elems);
+vector<string> Split(const string &s, char delim);
+
 // Useful printing method for 2 columns.
 template<typename A, typename B> void Print2(const A& a, const B& b) {
 	cout << fixed << setprecision(2);
