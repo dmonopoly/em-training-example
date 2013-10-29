@@ -44,8 +44,27 @@ namespace NotationHelper {
     return predicate + "(" + target + ")";
   }
 
-  void ReplaceSymbol(const string &old_s, const string &new_s, string *n_repr) {
-
+  void ReplaceSymbol(const string &old_s, const string &new_s, Notation *n) {
+    vector<string> changed;
+    for (int i = 0; i < n->first.size(); ++i) {
+      if (n->first[i] == old_s) {
+        if (EXTRA_PRINTING)
+          cout << "REPLACING..." << n->first[i] << " w/ " << new_s << endl;
+        changed.push_back(new_s);
+      } else
+        changed.push_back(n->first[i]);
+    }
+    n->set_first(changed);
+    changed.clear();
+    for (int i = 0; i != n->second.size(); ++i) {
+      if (n->second[i] == old_s) {
+        if (EXTRA_PRINTING)
+          cout << "REPLACING..." << n->second[i] << " w/ " << new_s << endl;
+        changed.push_back(new_s);
+      } else
+        changed.push_back(n->second[i]);
+    }
+    n->set_second(changed);
   }
 }
 

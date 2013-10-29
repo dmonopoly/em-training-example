@@ -30,7 +30,8 @@ namespace NotationHelper {
   string SurroundWithParentheses(const string &predicate, const string &target);
   // TODO: ReplaceSymbol is the only method here also used by viterbi. Extract
   // NotHelper out to its own file.
-  void ReplaceSymbol(const string &old_s, const string &new_s, string *n_repr);
+  void ReplaceSymbol(const string &old_s, const string &new_s,
+                     Notation *n);
 }
 
 // Notation Calculator methods that use the map of calculations.

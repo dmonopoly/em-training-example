@@ -72,24 +72,22 @@ Notation::Notation(string predicate, vector<string> first, string delimiter,
 }
 
 string Notation::repr() const {
-  if (this->repr_.empty()) {
-    stringstream ss;
-    ss << this->predicate << "(";
-    for (int i = 0; i < this->first.size()-1; ++i)
-      ss << this->first[i] << this->first_delimiter;
-    if (!this->first.empty())
-      ss << this->first.back();
-    if (!this->second.empty()) { 
-      ss << this->delimiter;
-      for (int i = 0; i < this->second.size()-1; ++i)
-        ss << this->second[i] << this->second_delimiter;
-      ss << this->second.back();
-    }
-    ss << ")";
-    return ss.str();
-  } else {
-    return this->repr_;
+  // TODO: could optimize with repr_ instance field, but then must update it
+  // appropriately, overload = assignment, etc.... have an update_repr method.
+  stringstream ss;
+  ss << this->predicate << "(";
+  for (int i = 0; i < this->first.size()-1; ++i)
+    ss << this->first[i] << this->first_delimiter;
+  if (!this->first.empty())
+    ss << this->first.back();
+  if (!this->second.empty()) { 
+    ss << this->delimiter;
+    for (int i = 0; i < this->second.size()-1; ++i)
+      ss << this->second[i] << this->second_delimiter;
+    ss << this->second.back();
   }
+  ss << ")";
+  return ss.str();
 }
 
 // static void Notation ExtractFromString(const string &s) {
