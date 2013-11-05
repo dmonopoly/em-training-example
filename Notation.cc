@@ -90,28 +90,6 @@ string Notation::repr() const {
   return ss.str();
 }
 
-// static void Notation ExtractFromString(const string &s) {
-//   string predicate = s.substr(0, 1);
-//   vector<string> first, second;
-//   string first_delim, second_delim;
-//   size_t delim_pos = s.find(Notation::GIVEN_DELIM);
-// // const string Notation::GIVEN_DELIM = "|";
-// // const string Notation::AND_DELIM = ",";
-// // const string Notation::SEQ_DELIM = " ";
-// // const string Notation::NULL_DELIM = "NULL";  // Signifies delim never used.
-//   if (delim_pos != string::npos) {
-// //     vector<string> &split(const string &s, char delim, vector<string> &elems);
-//     string first_part = s.substr(2, delim_pos - 2);
-//     if (first_part.size() > 1)
-//     char delim;
-//     stringstream ss;
-//     ss << Notation::
-//     BasicHelper::Split( )
-//   }
-//   Notation n(predicate, first, first_delim, second, second_delim);
-//   return n;
-// }
-
 ostream& operator<<(ostream& out, const Notation& n) {
     return out << n.repr();
 }

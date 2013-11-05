@@ -54,6 +54,13 @@ namespace NotationHelper {
       } else
         changed.push_back(n->first[i]);
     }
+    if (EXTRA_PRINTING) {
+      cout << "new vector for first: " << endl;
+      for (auto it = changed.begin(); it != changed.end(); ++it) {
+        cout << *it << " ";
+      }
+      cout << endl;
+    }
     n->set_first(changed);
     changed.clear();
     for (int i = 0; i != n->second.size(); ++i) {

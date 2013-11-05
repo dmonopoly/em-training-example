@@ -28,10 +28,10 @@ namespace NotationHelper {
   // Returns a string that is the concatentation of all strings in v.
   string Combine(const vector<string> &v);
   string SurroundWithParentheses(const string &predicate, const string &target);
+  // Replaces all symbols in n that are equal to old_s with new_s.
   // TODO: ReplaceSymbol is the only method here also used by viterbi. Extract
   // NotHelper out to its own file.
-  void ReplaceSymbol(const string &old_s, const string &new_s,
-                     Notation *n);
+  void ReplaceSymbol(const string &old_s, const string &new_s, Notation *n);
 }
 
 // Notation Calculator methods that use the map of calculations.

@@ -1,7 +1,8 @@
 #include "TrellisAid.h"
 #include "NLPHelper.h"
 
-#define EXTRA_PRINTING true
+#define PRINT_VITERBI_RESULTS_OFTEN true
+#define EXTRA_PRINTING false
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -26,14 +27,15 @@ namespace TrellisAid {
         if (EXTRA_PRINTING)
           cout << Basic::Tab(1) << "tag " << tag_list.at(j) << "--\n";
         // Encode unique names for each node. Note that 'first' and 'second' are
-        // useful for retrieving the 'sister' node if you only have one.
+        // useful for retrieving the 'sister' node if you only have one. Also
+        // note the hack that enables us to extract the tag and the word.
         string the_tag = tag_list.at(j);
         string the_word = observed_data.at(i);
         stringstream ss;
-        ss << the_tag << the_word << i << j << "first";
+        ss << the_tag << "#TAG#" << the_word << "#WORD#" << i << j << "first";
         Node *n1 = new Node(ss.str(), topol_index, the_tag, the_word);
         ss.clear(); ss.str("");
-        ss << the_tag << the_word << i << j << "second";
+        ss << the_tag << "#TAG#" << the_word << "#WORD#" << i << j << "second";
         Node *n2 = new Node(ss.str(), topol_index + 1, the_tag, the_word);
         if (EXTRA_PRINTING) {
           cout << Basic::Tab(2) << "node name: " << n1->repr() << endl;
@@ -102,7 +104,7 @@ namespace TrellisAid {
       cout << "Initializing optimal values." << endl;
     }
     for (Node *n : nodes) {
-      opt.emplace(n->repr(), 0);
+      opt[n->repr()] = 0;
     }
     opt[nodes.front()->repr()] = 1;
 
@@ -116,8 +118,14 @@ namespace TrellisAid {
         Node *next = e->dest;
         try {
           double new_val = opt.at(current_node->repr()) * data.at(e->repr());
+          // TODONOW: why 0? why NaN?
+//           cout << "opt at curr = " << opt.at(current_node->repr()) <<
+//             ", TIMES e->repr data = " << data.at(e->repr()) << " where e->repr=" <<
+//             e->repr() << endl;
+//           cout << "new_val: " << new_val << " vs. opt at next: " << opt.at(next->repr()) << endl;
           if (new_val > opt.at(next->repr())) {
             opt[next->repr()] = new_val;
+//             cout << "storing for " << next->repr() << ": " << current_node->repr() << endl;
             best_path[next->repr()] = current_node->repr();
           }
         } catch (out_of_range &e) {
@@ -138,6 +146,8 @@ namespace TrellisAid {
     vector<string> best_tag_seq;
     vector<string> assoc_word_seq;
     string next_node_repr = nodes.back()->repr();
+
+    // Follow the backpointers of best_path len(observed_data) times.
     for (int i = 0; i < observed_data.size(); ++i) {
       string name;
       try {
@@ -146,8 +156,9 @@ namespace TrellisAid {
         cerr << "Out of range error in Viterbi while getting name: " <<
           e.what() << endl;
       }
-      string tag = name.substr(0, 1);
-      string word = name.substr(1, 1);
+      string tag = name.substr(0, name.find("#TAG#"));
+      string word = name.substr(name.find("#TAG#") + 5,
+                                name.find("#WORD#") - (name.find("#TAG#") + 5));
       best_tag_seq.push_back(tag);
       assoc_word_seq.push_back(word);
       try {
@@ -224,9 +235,12 @@ namespace TrellisAid {
     // PRECONDITION: The order of nodes/edges is already in topological order.
     map<string, double> alpha;  // Sum of all paths from start to this node.
     map<string, double> beta;  // Sum of all paths from this node to final.
-    alpha[nodes.at(0)->repr()] = 1;
-    beta[nodes.at(nodes.size() - 1)->repr()] = 1;
+    alpha[nodes.front()->repr()] = 1;
+    beta[nodes.back()->repr()] = 1;
+    //TMP TODO: REMOVE
+    ofstream fout("alphaback.txt");
     for (int iter_count = 0; iter_count < num_iterations; ++iter_count) {
+      fout << "Why is alphaback#1 vanishing? " << alpha[nodes.back()->repr()] << endl;
       if (EXTRA_PRINTING)
         cout << "Forward pass... ";
       // Forward pass. Assumes start node is at i = 0.
@@ -235,14 +249,30 @@ namespace TrellisAid {
           double sum = 0;
           for (Edge *e : nodes[i]->parent_edges) {
             //tmp
-            cout << e->repr() << endl;
+//             cout << e->repr() << endl;
             sum += alpha[e->src->repr()] * data->at(e->repr());
+
+            fout << "sum as it changes: alpha*data:" << alpha[e->src->repr()]
+              << "*" << data->at(e->repr()) << "="  << sum << endl;
+            fout << Basic::Tab(1) << "edge rep: " << e->src->repr() <<
+              ", e->repr: " << e->repr() << endl;
           }
+          // tmp
+          fout << "--" << endl;
           if (EXTRA_PRINTING){
             cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() <<
                 ": " << sum << endl;
           }
+          // TMP: TODO: DELETE
+//           if (nodes[i]->repr() == nodes.back()->repr()) {
+//             fout << "forward pass back: " << sum << endl;
+//           }
+          fout << "alpha value for " << nodes[i]->repr() << "beforehand: " <<
+            alpha[nodes[i]->repr()] << endl;
           alpha[nodes[i]->repr()] = sum;
+          fout << "alpha value for " << nodes[i]->repr() << "after: " <<
+            alpha[nodes[i]->repr()] << endl;
+          fout << "===" << endl;
         }
       } catch (out_of_range &e) {
         cerr << "Out of range error in forward pass: " << e.what() << endl;
@@ -250,6 +280,7 @@ namespace TrellisAid {
       } catch (exception &e) {
         cerr << "Issue in forward pass: " << e.what() << endl;
       }
+      fout << "Why is alphaback#2 vanishing? " << alpha[nodes.back()->repr()] << endl;
 
       if (EXTRA_PRINTING) {
         cout << "Backward pass... ";
@@ -266,6 +297,7 @@ namespace TrellisAid {
         }
         beta[nodes[i]->repr()] = sum;
       }
+      fout << "Why is alphaback#3 vanishing? " << alpha[nodes.back()->repr()] << endl;
 
       if (EXTRA_PRINTING) {
         cout << "Counting pass... " << endl;
@@ -306,8 +338,11 @@ namespace TrellisAid {
         // values for that count_key from total_fract_counts before updating
         // (*data)[count_key]. This compensates for adding too-early cXA's when
         // computing the total fractional counts for C(X,w_i).
-        if (already_used[count_key])
+        if (already_used[count_key]) {
           total_fract_counts[e->dest->tag] -= (*data)[count_key];
+        }
+        // TODO: why is alpha value going to nan suddenly?
+        fout << alpha[nodes.back()->repr()] << endl;
         (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
                                * beta[e->dest->repr()]) /
                                alpha[nodes.back()->repr()];
@@ -320,8 +355,9 @@ namespace TrellisAid {
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
+
         (*data)[e->repr()] = (*data)[n_count_key] /
-                             total_fract_counts.at(e->dest->tag);
+          total_fract_counts.at(e->dest->tag);
       }
 
       // Update probability of observed data sequence. This should increase
@@ -336,16 +372,20 @@ namespace TrellisAid {
       if (very_small_data_set) {
         OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
       } else {
-        // Print viterbi.
-        if (saved_obs_seq_probs != NULL)
-          TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-              *saved_obs_seq_probs);
-        else {
-          TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-              {});
+        if (PRINT_VITERBI_RESULTS_OFTEN) {
+          // Print viterbi.
+          cout << iter_count + 1 << ": \n";
+          if (saved_obs_seq_probs != NULL)
+            TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
+                *saved_obs_seq_probs);
+          else {
+            TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
+                {});
+          }
+          // Print P(obs).
+          cout << "P(observed sequence): " << alpha[nodes.back()->repr()] <<
+                                              endl << endl;
         }
-        // Print P(obs).
-        cout << "P(observed sequence): " << alpha[nodes.back()->repr()] << endl;
       }
     }
     if (EXTRA_PRINTING) {
@@ -358,6 +398,9 @@ namespace TrellisAid {
     // update the "Given" probabilities (P(A|X), P(A|Y), etc.). Now we use
     // Viterbi to find the highest-probability path based on the collected
     // probabilities and print the result.
+    if (PRINT_VITERBI_RESULTS_OFTEN) {
+      cout << "Final results----" << endl;
+    }
     if (saved_obs_seq_probs != NULL)
       TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
           *saved_obs_seq_probs);

@@ -1,4 +1,6 @@
 // Models first|second, as in P(first|second) or C(first|second).
+// Definition: a 'symbol' is a character or sound or etc. - represented by a
+// string, and is an element in 'first' / 'second'.
 #ifndef NOTATION_H_
 #define NOTATION_H_
 
