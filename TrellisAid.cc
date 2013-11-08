@@ -1,7 +1,7 @@
 #include "TrellisAid.h"
 #include "NLPHelper.h"
 
-#define EXTRA_PRINTING true
+#define EXTRA_PRINTING false
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -235,7 +235,7 @@ namespace TrellisAid {
           double sum = 0;
           for (Edge *e : nodes[i]->parent_edges) {
             //tmp
-            cout << e->repr() << endl;
+//             cout << e->repr() << endl;
             sum += alpha[e->src->repr()] * data->at(e->repr());
           }
           if (EXTRA_PRINTING){
