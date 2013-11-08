@@ -4,7 +4,7 @@ the best matching tag sequence for a simple observation of sequence.
 Based on Kevin Knight's classnotes for CSCI 662 (Advanced NLP), p73:
 http://d.pr/i/ADyl
 
-### Purpose?
+### Purpose
 Research, understanding the algorithms, etc. So it's a bit hack-y.
 
 ### Code Organization

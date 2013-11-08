@@ -21,7 +21,7 @@
 #define INIT_VAL_pAGivenX .5
 #define INIT_VAL_pAGivenY .5
 
-#define EXTRA_PRINTING true
+#define EXTRA_PRINTING false
 /*  END SETTINGS  */
 
 // TODO: Reorganize and use Notation::GIVEN_DELIM. http://bit.ly/15rbAom
@@ -108,7 +108,6 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
     // Get norm P(t,w) and counts.
     double sum_of_all_pTW = 0;  // Use this as divisor in normalization.
     for (vector<string> tags : tag_sequences) {
-//       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
       double unnormalized_prob = Calculator::ComputeUnnormalizedProbability(pTW,
           *data);
@@ -116,7 +115,6 @@ void ComputeDataWithBruteForce(map<string, double> *data, const Notation &n,
       (*data)[pTW.repr()] = unnormalized_prob;
     }
     for (vector<string> tags : tag_sequences) {
-//       vector<string> tags = NotationHelper::Individualize(seq);
       Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
 
       // Update counts with *normalized* values. We can also, while we have
@@ -173,14 +171,12 @@ void OutputResultsForBruteForce(map<string, double> &data, Notation n,
   cout << "Final " << pBGivenY << ": " << data[pBGivenY.repr()] << endl << endl;
 
   cout << "Determining the best matching tag sequence:\n";
-//   vector<string> tags = NotationHelper::Individualize(tag_sequences.at(0));
   vector<string> tags = tag_sequences.at(0);
   Notation pTW_first("P", OBSERVED_DATA, AND_DELIM, tags);
   Notation *best_pTGivenW = NULL;
   string best_match_pTAndW_key = pTW_first.repr();
   string best_match_pTGivenW_key;
   for (vector<string> tags : tag_sequences) {
-//     vector<string> tags = NotationHelper::Individualize(seq);
     Notation pTW("P", OBSERVED_DATA, AND_DELIM, tags);
     Notation pTGivenW("P", tags, GIVEN_DELIM, OBSERVED_DATA);
 
