@@ -1,9 +1,9 @@
+// Helper functions for brute force.
 #ifndef HELPER_H_
 #define HELPER_H_
 
 #include <cassert>
 #include <cstdlib>
-#include <cmath>
 #include <iomanip>
 #include <map>
 #include <sstream>
@@ -15,20 +15,23 @@
 
 using namespace std;
 
+struct Node;
+struct Edge;
+
 namespace OutputHelper {
   void PrintHeader(const vector<Notation> &nots);
   void PrintDataRow(int iteration, const vector<Notation> &nots,
-                    const map<string, double> &data);
+                    const map<Notation, double> &data);
 }
 
 namespace NotationHelper {
   // Returns a string that is the concatentation of all strings in v.
   string Combine(const vector<string> &v);
   string SurroundWithParentheses(const string &predicate, const string &target);
-}
-
-namespace GraphHelper {
-  void LinkNodeAndEdge(Node *src_node, Edge &edge, Node *dest_node);
+  // Replaces all symbols in n that are equal to old_s with new_s.
+  // TODO: ReplaceSymbol is the only method here also used by viterbi. Extract
+  // NotHelper out to its own file.
+  void ReplaceSymbol(const string &old_s, const string &new_s, Notation *n);
 }
 
 // Notation Calculator methods that use the map of calculations.
@@ -39,8 +42,8 @@ namespace Calculator {
   // completion. Essentially, P(t, w), with AND.
   // Post: Normalized probability for the data completion represented by
   // Notation n - i.e., P(t, w).
-  double ComputeUnnormalizedProbability(const Notation &n, const map<string,
-      double> &data);
+  double ComputeUnnormalizedProbability(const Notation &n,
+                                        const map<Notation, double> &data);
 
   // Part of brute force method:
   // Pre: pn's 'first' and 'second' values have same length. pn is like
@@ -52,13 +55,14 @@ namespace Calculator {
   double NormProbFactor(const double &normalizedProb, const Notation &pn,
                         const Notation &cn);
 
-  // Usable by both brute force and efficient EM:
+  // Should only be used by brute force. In Viterbi, alpha(end node) stores the
+  // updated probability, so this isn't needed.
   // Pre: Notation is like P(ABA) (empty second list), and data has
   // appropriate key-value pairs set.
   // Post: Updates data to have computed probability, which is \sum_{t1,t2,t3}
-  // P(t1,t2,t3)P(ABA|t1,t2,t3).
+  // P(t1,t2,t3)P(ABA|t1,t2,t3), by iterating over all possible tag sequences.
   void UpdateProbOfObsDataSeq(const Notation &observedNotation,
-                              map<string, double> *data,
+                              map<Notation, double> *data,
                               const vector<vector<string> > &tagSequences);
 }
 

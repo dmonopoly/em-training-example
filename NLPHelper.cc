@@ -1,3 +1,6 @@
+// Functions used primarily for the brute force method in TwoTagExample.cc.
+// Can decouple TagHandler from TrellisAid to make this not needed at all by
+// TrellisAid.
 #include "NLPHelper.h"
 #include "BasicHelper.h"
 
@@ -14,14 +17,14 @@ namespace OutputHelper {
   }
 
   void PrintDataRow(int iteration, const vector<Notation> &nots,
-                    const map<string, double> &data) {
+                    const map<Notation, double> &data) {
     vector<double> values;
     values.push_back((double) iteration);
     for (int i = 0; i < nots.size(); ++i) {
       try {
-        values.push_back(data.at(nots[i].repr()));
+        values.push_back(data.at(nots[i]));
       } catch (exception &e) {
-        cerr << "No key: " << nots[i].repr() << endl;
+        cerr << "No key: " << nots[i] << endl;
       }
     }
     Basic::PrintRow(values);
@@ -40,30 +43,60 @@ namespace NotationHelper {
   string SurroundWithParentheses(const string &predicate, const string &target) {
     return predicate + "(" + target + ")";
   }
-}
 
-namespace GraphHelper {
-  void LinkNodeAndEdge(Node *src_node, Edge &edge, Node *dest_node) {
-    // Sets the nodes to be connected to the edge.
-    src_node->child_edges.push_back(&edge);
-    dest_node->parent_edges.push_back(&edge);
+  void ReplaceSymbol(const string &old_s, const string &new_s, Notation *n) {
+    vector<string> changed;
+    for (int i = 0; i < n->first.size(); ++i) {
+      if (n->first[i] == old_s) {
+        if (EXTRA_PRINTING)
+          cout << "REPLACING..." << n->first[i] << " w/ " << new_s << endl;
+        changed.push_back(new_s);
+      } else
+        changed.push_back(n->first[i]);
+    }
+    if (EXTRA_PRINTING) {
+      cout << "new vector for first: " << endl;
+      for (auto it = changed.begin(); it != changed.end(); ++it) {
+        cout << *it << " ";
+      }
+      cout << endl;
+    }
+    n->set_first(changed);
+    changed.clear();
+    for (int i = 0; i != n->second.size(); ++i) {
+      if (n->second[i] == old_s) {
+        if (EXTRA_PRINTING)
+          cout << "REPLACING..." << n->second[i] << " w/ " << new_s << endl;
+        changed.push_back(new_s);
+      } else
+        changed.push_back(n->second[i]);
+    }
+    n->set_second(changed);
   }
 }
 
 namespace Calculator {
-  double ComputeUnnormalizedProbability(const Notation &n, const map<string,
-                                        double> &data) {
+  double ComputeUnnormalizedProbability(const Notation &n,
+                                        const map<Notation, double> &data) {
     double d = 1;
     for (int i = 0; i < n.second.size(); ++i) {
-      string tagKey;
-      if (i == 0)
-        tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i]);
-      else {
-        tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i] +
-            Notation::GIVEN_DELIM + n.second[i-1]); 
+      Notation tagKey;
+//       string tagKey;
+      if (i == 0){
+        Notation tmp("P", {n.second[i]});
+//         tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i]);
+        tagKey = tmp;
+      } else {
+        Notation tmp("P", {n.second[i]}, Notation::GIVEN_DELIM,
+                     {n.second[i-1]});
+//         tagKey = NotationHelper::SurroundWithParentheses("P", n.second[i] +
+//             Notation::GIVEN_DELIM + n.second[i-1]); 
+        tagKey = tmp;
       }
-      string wordTagKey = NotationHelper::SurroundWithParentheses("P", n.first[i] +
-          Notation::GIVEN_DELIM + n.second[i]);
+      Notation wordTagKey("P", {n.first[i]}, Notation::GIVEN_DELIM,
+                          {n.second[i]});
+//       string wordTagKey = NotationHelper::SurroundWithParentheses("P", n.first[i] +
+//           Notation::GIVEN_DELIM + n.second[i]);
 
       auto it = data.find(tagKey);
       assert(it != data.end() && "tagKey was not found");
@@ -95,7 +128,7 @@ namespace Calculator {
   }
 
   void UpdateProbOfObsDataSeq(const Notation &observedNotation,
-                              map<string, double> *data,
+                              map<Notation, double> *data,
                               const vector<vector<string> > &tagSequences) {
     double sum = 0;
     for (vector<string> tagSeq : tagSequences) {
@@ -108,21 +141,28 @@ namespace Calculator {
       string prevTag;
       for (int i = 0; i < tagSeq.size(); ++i) {
         string currTag = tagSeq[i];
-        string tagKey;
+//         string tagKey;
+        Notation theTagKey;
         if (i == 0) {
-          tagKey = NotationHelper::SurroundWithParentheses("P", currTag);
+          Notation tagKey("P", {currTag});
+//           tagKey = NotationHelper::SurroundWithParentheses("P", currTag);
           probOfTagSeq *= data->at(tagKey);
+          theTagKey = tagKey;
         } else {
-          tagKey = NotationHelper::SurroundWithParentheses("P", currTag +
-              Notation::GIVEN_DELIM + prevTag);
+          Notation tagKey("P", {currTag}, Notation::GIVEN_DELIM, {prevTag});
+//           tagKey = NotationHelper::SurroundWithParentheses("P", currTag +
+//               Notation::GIVEN_DELIM + prevTag);
           probOfTagSeq *= data->at(tagKey);
+          theTagKey = tagKey;
         }
         prevTag = currTag;
         if (EXTRA_PRINTING)
-          cout << tagKey << ": " << data->at(tagKey) << endl;
+          cout << theTagKey << ": " << data->at(theTagKey) << endl;
 
-        string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
-            observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
+        Notation obsGivenTagKey("P", {observedNotation.first[i]},
+            Notation::GIVEN_DELIM, {currTag});
+//         string obsGivenTagKey = NotationHelper::SurroundWithParentheses("P",
+//             observedNotation.first[i] + Notation::GIVEN_DELIM + currTag);
         if (EXTRA_PRINTING)
           cout << obsGivenTagKey << ": " << data->at(obsGivenTagKey) << endl;
         probOfObservedGivenTagSeq *= data->at(obsGivenTagKey);
@@ -131,7 +171,7 @@ namespace Calculator {
     }
     if (EXTRA_PRINTING)
       cout << "Setting " << observedNotation.repr() << " to " << sum << endl;
-    (*data)[observedNotation.repr()] = sum;
+    (*data)[observedNotation] = sum;
   }
 }
 

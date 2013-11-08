@@ -8,7 +8,16 @@ http://d.pr/i/ADyl
 Research, understanding the algorithms, etc. So it's a bit hack-y.
 
 ### Code Organization
-Main file: TwoTagExample.cc.
+- Main file: TwoTagExample.cc. This runs the brute force and the efficient
+  method.
+- **The following files are needed to apply Efficient EM and Viterbi methods on
+  your own datasets:**
+  - TrellisAid.h
+  - TrellisAid.cc
+  - NotationConstants.h
+  - GraphAid.h
+  - GraphAid.cc
+  - NLPHelper.h - technically shouldn't be needed, can decouple (TODO)
 
 ## Running
 Compile using cmake. Example:

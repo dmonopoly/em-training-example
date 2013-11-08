@@ -6,7 +6,7 @@
 
 #include "Node.h"
 #include "Notation.h"
-#include "NLPHelper.h"
+#include "GraphAid.h"
 
 using namespace std;
 
@@ -16,9 +16,9 @@ struct Edge {
   Notation notation;
   Node *src, *dest;
   Edge(Notation n, Node *src, Node *dest);
-  string repr() {
-    return notation.repr();
+  Notation repr() {
+    return notation;
   }
 };
 
-#endif
+#endif  // EDGE_H_

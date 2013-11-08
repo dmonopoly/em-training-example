@@ -1,4 +1,6 @@
 // Models first|second, as in P(first|second) or C(first|second).
+// Definition: a 'symbol' is a character or sound or etc. - represented by a
+// string, and is an element in 'first' / 'second'.
 #ifndef NOTATION_H_
 #define NOTATION_H_
 
@@ -10,6 +12,8 @@
 using namespace std;
 
 class Notation {
+ private:
+  string repr_;
  public:
   static const string GIVEN_DELIM;
   static const string AND_DELIM;
@@ -23,6 +27,7 @@ class Notation {
   // Delimiters within each list. This specificity allows P(ABA|t1,t2,t3).
   string first_delimiter, second_delimiter;
 
+  // Vectors of symbols (characters, sounds, etc.).
   vector<string> first;  // Each string can be used as a key to the map.
   vector<string> second;
   Notation();
@@ -45,6 +50,10 @@ class Notation {
     this->predicate = new_pred;
   }
   string repr() const;
+
+  bool operator <(const Notation& rhs) const {
+    return this->repr() < rhs.repr();
+  }
 };
 ostream& operator<<(ostream& out, const Notation& n);
 

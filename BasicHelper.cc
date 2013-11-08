@@ -34,28 +34,53 @@ bool Contains(long num1, long num2) {
 }
 
 bool AskAndDecide(string question) {
-    char response;
-    cout << question;
-    cin >> response;
-    while (response != 'n' && response != 'N' && response != 'y' && response != 'Y') {
-        cout << "Improper response.\n";
-        cout << question;
-        cin >> response;
-    }
-    switch(response) {
-        case 'n':
-        case 'N': return false;
-        case 'y':
-        case 'Y': return true;
-    }
-    cerr << "Reached spot it shouldn't have... (AskAndDecide)" << endl;
-    return 1;
+  char response;
+  cout << question;
+  cin >> response;
+  while (response != 'n' && response != 'N' && response != 'y' && response != 'Y') {
+      cout << "Improper response.\n";
+      cout << question;
+      cin >> response;
+  }
+  switch(response) {
+      case 'n':
+      case 'N': return false;
+      case 'y':
+      case 'Y': return true;
+  }
+  cerr << "Reached spot it shouldn't have... (AskAndDecide)" << endl;
+  return 1;
 }
 
 void ToLowerCase(string &s) {
-    for (int i=0; i < s.size(); i++) {
-        s[i] = tolower(s[i]);
-    }
+  for (int i=0; i < s.size(); i++) {
+    s[i] = tolower(s[i]);
+  }
 }
 
+void ReplaceAll(string& str, const string& from, const string& to) {
+  if(from.empty())
+    return;
+  size_t start_pos = 0;
+  while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
+    // In case 'to' contains 'from', like replacing 'x' with 'yx'.
+    start_pos += to.length();
+  }
+}
+
+vector<string>& Split(const string &s, char delim, vector<string> &elems) {
+    stringstream ss(s);
+    string item;
+    while (getline(ss, item, delim)) {
+        elems.push_back(item);
+    }
+    return elems;
+}
+
+vector<string> Split(const string &s, char delim) {
+    vector<string> elems;
+    Split(s, delim, elems);
+    return elems;
+}
 }  // namespace Basic
