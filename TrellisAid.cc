@@ -118,26 +118,10 @@ namespace TrellisAid {
         Node *next = e->dest;
         try {
           double new_val = opt.at(current_node->repr()) * data.at(e->repr());
-//           cout << "opt at curr = " << opt.at(current_node->repr()) <<
-//             ", TIMES e->repr data = " << data.at(e->repr()) << " where e->repr=" <<
-//             e->repr() << endl;
-//           cout << "new_val: " << new_val << " vs. opt at next: " << opt.at(next->repr()) << endl;
           // TODO: why opt at node right before end is the value 0? only happens
           // with larger input size...
-          if (next->repr() == "END_NODE") {
-            cout << "END NODE DATA--\n";
-            cout << "current node: " << current_node->repr() << "; edge repr: " << e->repr() << endl;
-            cout << "opt at current node: " << opt.at(current_node->repr()) << "; data at edge repr: " << data.at(e->repr()) << endl;
-            cout << "new_val: " << new_val << "; opt at next: " << opt.at(next->repr()) << endl;
-            cout << "--" << endl;
-          } else {
-            cout << "current node: " << current_node->repr() << "; edge repr: " << e->repr() << endl;
-            cout << "opt at current node: " << opt.at(current_node->repr()) << "; data at edge repr: " << data.at(e->repr()) << endl;
-            cout << "new_val: " << new_val << "; opt at next: " << opt.at(next->repr()) << endl;
-          }
           if (new_val > opt.at(next->repr())) {
             opt[next->repr()] = new_val;
-            cout << "storing for " << next->repr() << ": " << current_node->repr() << endl;
             best_path[next->repr()] = current_node->repr();
           }
         } catch (out_of_range &e) {
@@ -249,8 +233,6 @@ namespace TrellisAid {
     map<string, double> beta;  // Sum of all paths from this node to final.
     alpha[nodes.front()->repr()] = 1;
     beta[nodes.back()->repr()] = 1;
-    //TMP TODO: REMOVE
-    ofstream fout("alphaback.txt");
     for (int iter_count = 0; iter_count < num_iterations; ++iter_count) {
       if (EXTRA_PRINTING)
         cout << "Forward pass... ";
@@ -259,31 +241,13 @@ namespace TrellisAid {
         for (int i = 1; i < nodes.size(); ++i) {
           double sum = 0;
           for (Edge *e : nodes[i]->parent_edges) {
-            //tmp
-//             cout << e->repr() << endl;
             sum += alpha[e->src->repr()] * data->at(e->repr());
-
-            fout << "sum as it changes: alpha*data:" << alpha[e->src->repr()]
-              << "*" << data->at(e->repr()) << "="  << sum << endl;
-            fout << Basic::Tab(1) << "edge rep: " << e->src->repr() <<
-              ", e->repr: " << e->repr() << endl;
           }
-          // tmp
-          fout << "--" << endl;
           if (EXTRA_PRINTING){
             cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() <<
                 ": " << sum << endl;
           }
-          // TMP: TODO: DELETE
-//           if (nodes[i]->repr() == nodes.back()->repr()) {
-//             fout << "forward pass back: " << sum << endl;
-//           }
-          fout << "alpha value for " << nodes[i]->repr() << "beforehand: " <<
-            alpha[nodes[i]->repr()] << endl;
           alpha[nodes[i]->repr()] = sum;
-          fout << "alpha value for " << nodes[i]->repr() << "after: " <<
-            alpha[nodes[i]->repr()] << endl;
-          fout << "===" << endl;
         }
       } catch (out_of_range &e) {
         cerr << "Out of range error in forward pass: " << e.what() << endl;
@@ -350,14 +314,9 @@ namespace TrellisAid {
         if (already_used[count_key]) {
           total_fract_counts[e->dest->tag] -= (*data)[count_key];
         }
-        // TODO: why is alpha value going to nan suddenly?
-        fout << alpha[nodes.back()->repr()] << endl;
         (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
                                * beta[e->dest->repr()]) /
                                alpha[nodes.back()->repr()];
-        fout << "Count key check: " << (*data)[count_key] << endl;
-        if ((*data)[count_key] == 0)
-          fout << "FOUND ZERO (earlier) for count_key: " << count_key << endl;
         already_used[count_key] = true;
         total_fract_counts[e->dest->tag] += (*data)[count_key];
       }
@@ -368,15 +327,8 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
 
-        fout << "================\n";
-        fout << "data at n count key: " << (*data)[n_count_key] << "; " 
-          << "total fract count at tag: " << total_fract_counts.at(e->dest->tag)
-          << endl;
         (*data)[e->repr()] = (*data)[n_count_key] /
           total_fract_counts.at(e->dest->tag);
-        if ((*data)[e->repr()] == 0)
-          fout << "GOT ZERO!" << endl;
-        fout << "================\n";
       }
 
       // Update probability of observed data sequence. This should increase
