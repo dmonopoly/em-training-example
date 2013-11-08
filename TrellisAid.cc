@@ -118,14 +118,26 @@ namespace TrellisAid {
         Node *next = e->dest;
         try {
           double new_val = opt.at(current_node->repr()) * data.at(e->repr());
-          // TODONOW: why 0? why NaN?
 //           cout << "opt at curr = " << opt.at(current_node->repr()) <<
 //             ", TIMES e->repr data = " << data.at(e->repr()) << " where e->repr=" <<
 //             e->repr() << endl;
 //           cout << "new_val: " << new_val << " vs. opt at next: " << opt.at(next->repr()) << endl;
+          // TODO: why opt at node right before end is the value 0? only happens
+          // with larger input size...
+          if (next->repr() == "END_NODE") {
+            cout << "END NODE DATA--\n";
+            cout << "current node: " << current_node->repr() << "; edge repr: " << e->repr() << endl;
+            cout << "opt at current node: " << opt.at(current_node->repr()) << "; data at edge repr: " << data.at(e->repr()) << endl;
+            cout << "new_val: " << new_val << "; opt at next: " << opt.at(next->repr()) << endl;
+            cout << "--" << endl;
+          } else {
+            cout << "current node: " << current_node->repr() << "; edge repr: " << e->repr() << endl;
+            cout << "opt at current node: " << opt.at(current_node->repr()) << "; data at edge repr: " << data.at(e->repr()) << endl;
+            cout << "new_val: " << new_val << "; opt at next: " << opt.at(next->repr()) << endl;
+          }
           if (new_val > opt.at(next->repr())) {
             opt[next->repr()] = new_val;
-//             cout << "storing for " << next->repr() << ": " << current_node->repr() << endl;
+            cout << "storing for " << next->repr() << ": " << current_node->repr() << endl;
             best_path[next->repr()] = current_node->repr();
           }
         } catch (out_of_range &e) {
@@ -154,7 +166,7 @@ namespace TrellisAid {
         name = best_path.at(next_node_repr);
       } catch (out_of_range &e) {
         cerr << "Out of range error in Viterbi while getting name: " <<
-          e.what() << endl;
+          next_node_repr << " | " << e.what() << endl;
       }
       string tag = name.substr(0, name.find("#TAG#"));
       string word = name.substr(name.find("#TAG#") + 5,
@@ -165,7 +177,7 @@ namespace TrellisAid {
         next_node_repr = best_path.at(name); // Skip sister node.
       } catch (out_of_range &e) {
         cerr << "Out of range error in Viterbi while getting next " <<
-          "node from best path: " << e.what() << endl;
+          "node from best path: " << name << " | " << e.what() << endl;
       }
     }
     // Reverse these because they were retrieved backwards.
@@ -240,7 +252,6 @@ namespace TrellisAid {
     //TMP TODO: REMOVE
     ofstream fout("alphaback.txt");
     for (int iter_count = 0; iter_count < num_iterations; ++iter_count) {
-      fout << "Why is alphaback#1 vanishing? " << alpha[nodes.back()->repr()] << endl;
       if (EXTRA_PRINTING)
         cout << "Forward pass... ";
       // Forward pass. Assumes start node is at i = 0.
@@ -280,7 +291,6 @@ namespace TrellisAid {
       } catch (exception &e) {
         cerr << "Issue in forward pass: " << e.what() << endl;
       }
-      fout << "Why is alphaback#2 vanishing? " << alpha[nodes.back()->repr()] << endl;
 
       if (EXTRA_PRINTING) {
         cout << "Backward pass... ";
@@ -297,7 +307,6 @@ namespace TrellisAid {
         }
         beta[nodes[i]->repr()] = sum;
       }
-      fout << "Why is alphaback#3 vanishing? " << alpha[nodes.back()->repr()] << endl;
 
       if (EXTRA_PRINTING) {
         cout << "Counting pass... " << endl;
@@ -346,6 +355,9 @@ namespace TrellisAid {
         (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
                                * beta[e->dest->repr()]) /
                                alpha[nodes.back()->repr()];
+        fout << "Count key check: " << (*data)[count_key] << endl;
+        if ((*data)[count_key] == 0)
+          fout << "FOUND ZERO (earlier) for count_key: " << count_key << endl;
         already_used[count_key] = true;
         total_fract_counts[e->dest->tag] += (*data)[count_key];
       }
@@ -356,8 +368,15 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
 
+        fout << "================\n";
+        fout << "data at n count key: " << (*data)[n_count_key] << "; " 
+          << "total fract count at tag: " << total_fract_counts.at(e->dest->tag)
+          << endl;
         (*data)[e->repr()] = (*data)[n_count_key] /
           total_fract_counts.at(e->dest->tag);
+        if ((*data)[e->repr()] == 0)
+          fout << "GOT ZERO!" << endl;
+        fout << "================\n";
       }
 
       // Update probability of observed data sequence. This should increase
