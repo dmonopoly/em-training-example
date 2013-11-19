@@ -51,6 +51,13 @@ class Notation {
   }
   string repr() const;
 
+  bool is_probability() const {
+    return this->predicate == "P";
+  }
+  bool is_count() const {
+    return this->predicate == "C";
+  }
+
   bool operator <(const Notation& rhs) const {
     return this->repr() < rhs.repr();
   }

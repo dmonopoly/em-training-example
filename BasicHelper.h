@@ -12,6 +12,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 
@@ -46,6 +47,13 @@ void ReplaceAll(string& str, const string& from, const string& to);
 vector<string> &Split(const string &s, char delim, vector<string> &elems);
 vector<string> Split(const string &s, char delim);
 
+// Returns log(x) + log(y). Checks for invalid x and y.
+double TakeLogsAndSum(double x, double y);
+// Compute log(x + y) given logx and logy.
+double AddLogs(double logx, double logy);
+// Compute log(x - y) given logx and logy.
+double SubtractLogs(double logx, double logy);
+
 // Useful printing method for 2 columns.
 template<typename A, typename B> void Print2(const A& a, const B& b) {
 	cout << fixed << setprecision(2);
@@ -61,7 +69,7 @@ template<typename A, typename B, typename C> void Print3(const A& a, const B& b,
 }
 
 // Useful writing method for 3 columns, like above.
-template<typename A, typename B, typename C> void Write3(ofstream &fout, 
+template<typename A, typename B, typename C> void Write3(ofstream &fout,
                                                          const A& a, const B& b,
                                                          const C& c) {
 	fout << fixed << setprecision(PRECISION);

@@ -1,5 +1,4 @@
 #include "TrellisAid.h"
-#include "NLPHelper.h"
 
 #define PRINT_VITERBI_RESULTS_OFTEN true
 #define EXTRA_PRINTING false
@@ -50,7 +49,8 @@ namespace TrellisAid {
         } else {
           for (Node *p : prev_nodes) {
             // P(t2|t1)
-            Notation notation_obj("P", {the_tag}, Notation::GIVEN_DELIM, {p->tag});
+            Notation notation_obj("P", {the_tag}, Notation::GIVEN_DELIM,
+                                  {p->tag});
             if (EXTRA_PRINTING)
               cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
             Edge *e = new Edge(notation_obj, p, n1);
@@ -91,8 +91,7 @@ namespace TrellisAid {
   }
 
   void Viterbi(const map<Notation, double> &data, const vector<Node *> &nodes,
-               const vector<string> observed_data, bool very_small_data_set,
-               const vector<double> saved_obs_seq_probs) {
+               const vector<string> observed_data) {
     // Key: string representation of node; Value: best value of P(t, w) so far
     // to that node. Best P(t, w) is stored in opt.at(last node).
     map<string, double> opt;
@@ -104,9 +103,9 @@ namespace TrellisAid {
       cout << "Initializing optimal values." << endl;
     }
     for (Node *n : nodes) {
-      opt[n->repr()] = 0;
+      opt[n->repr()] = -DBL_MAX;
     }
-    opt[nodes.front()->repr()] = 1;
+    opt[nodes.front()->repr()] = log(1); // Max value probability.
 
     // Run through trellis. Topological order assumed.
     if (EXTRA_PRINTING) {
@@ -117,11 +116,23 @@ namespace TrellisAid {
       for (Edge *e : current_node->child_edges) {
         Node *next = e->dest;
         try {
-          double new_val = opt.at(current_node->repr()) * data.at(e->repr());
-          // TODO: why opt at node right before end is the value 0? only happens
-          // with larger input size...
+          double new_val = opt.at(current_node->repr()) + data.at(e->repr());
+//           cout << "opt at curr = " << opt.at(current_node->repr()) <<
+//             ", PLUS e->repr data = " << data.at(e->repr()) << " where e->repr=" <<
+//             e->repr() << endl;
+//           cout << "new_val: " << new_val << " vs. opt at next: " << opt.at(next->repr())
+//             << endl;
+          // More prints...
+//           cout << "current node: " << current_node->repr() << "; edge repr: "
+//             << e->repr() << endl;
+//           cout << "opt at current node: " << opt.at(current_node->repr()) <<
+//             "; data at edge repr: " << data.at(e->repr()) << endl;
+//           cout << "new_val: " << new_val << "; opt at next: " <<
+//             opt.at(next->repr()) << endl;
           if (new_val > opt.at(next->repr())) {
             opt[next->repr()] = new_val;
+//             cout << "storing for " << next->repr() << ": " <<
+//               current_node->repr() << endl;
             best_path[next->repr()] = current_node->repr();
           }
         } catch (out_of_range &e) {
@@ -181,13 +192,7 @@ namespace TrellisAid {
     }
     string best_match_pTAndW_str = ss.str();
     cout << "The highest probability found belongs to " << n_best_match_pTAndW
-        << ": " << best_prob_pTAndW;
-    if (very_small_data_set) {
-      cout << ", " << n_best_match_pTGivenW << ": " <<
-          best_prob_pTAndW/saved_obs_seq_probs.back() << endl;
-    } else {
-      cout << endl;
-    }
+        << ": " << best_prob_pTAndW << endl;
     cout << "Best matching tag sequence: " << best_match_pTAndW_str << endl;
   } // End Viterbi
 
@@ -196,10 +201,9 @@ namespace TrellisAid {
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<Notation, double> *data,
-                                 const vector<string> observed_data,
-                                 Notation nObsSeq,
-                                 vector<double> *saved_obs_seq_probs,
-                                 bool very_small_data_set) {
+                                 const vector<string> observed_data) {
+//                                  vector<double> *saved_obs_seq_probs) {
+    Notation nObsSeq("P", observed_data, Notation::SEQ_DELIM);
     if (EXTRA_PRINTING)
       cout << "Beginning Forward-Backward." << endl;
     // Value: true if already used. Main purpose is for checking while
@@ -207,47 +211,47 @@ namespace TrellisAid {
     // setup.
     map<Notation, bool> already_used;
 
-    // Push back initial 0.
-    saved_obs_seq_probs->push_back((*data)[nObsSeq]);
-    vector<Notation> rowOfNots;
-    if (very_small_data_set) {
-      // Prepare row of Notation strings for nice column-organized output.
-      for (int i = 0; i < select_edges.size(); ++i) {
-        Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word},
-            Notation::AND_DELIM);
-        if (!already_used[n_count_key]) {
-          rowOfNots.push_back(n_count_key);
-          rowOfNots.push_back(e->notation);
-          already_used[n_count_key] = true;
-        }
-      }
-      rowOfNots.push_back(nObsSeq);
-      OutputHelper::PrintHeader(rowOfNots);
-      OutputHelper::PrintDataRow(0, rowOfNots, *data);
-      already_used.clear();
-    }
-
     // PRECONDITION: The order of nodes/edges is already in topological order.
     map<string, double> alpha;  // Sum of all paths from start to this node.
     map<string, double> beta;  // Sum of all paths from this node to final.
-    alpha[nodes.front()->repr()] = 1;
-    beta[nodes.back()->repr()] = 1;
+    alpha[nodes.front()->repr()] = log(1);
+    beta[nodes.back()->repr()] = log(1);
+    //TMP TODO: REMOVE
+    ofstream fout("alphaback.txt");
     for (int iter_count = 0; iter_count < num_iterations; ++iter_count) {
       if (EXTRA_PRINTING)
         cout << "Forward pass... ";
       // Forward pass. Assumes start node is at i = 0.
       try {
         for (int i = 1; i < nodes.size(); ++i) {
-          double sum = 0;
+          double sum = 0; // TODO: is this right?
           for (Edge *e : nodes[i]->parent_edges) {
-            sum += alpha[e->src->repr()] * data->at(e->repr());
+            //tmp
+//             cout << e->repr() << endl;
+            sum = Basic::AddLogs(sum,
+                                 alpha[e->src->repr()] + data->at(e->repr()));
+
+            fout << "sum as it changes: alpha + data:" << alpha[e->src->repr()]
+              << " +  " << data->at(e->repr()) << " = "  << sum << endl;
+            fout << Basic::Tab(1) << "edge rep: " << e->src->repr() <<
+              ", e->repr: " << e->repr() << endl;
           }
+          // tmp
+//           fout << "--" << endl;
           if (EXTRA_PRINTING){
             cout << Basic::Tab(1) << "Alpha value for " << nodes[i]->repr() <<
                 ": " << sum << endl;
           }
+          // TMP: TODO: DELETE
+          if (nodes[i]->repr() == nodes.back()->repr()) {
+            fout << "forward pass back: " << sum << endl;
+          }
+          fout << "alpha value for " << nodes[i]->repr() << "beforehand: " <<
+            alpha[nodes[i]->repr()] << endl;
           alpha[nodes[i]->repr()] = sum;
+          fout << "alpha value for " << nodes[i]->repr() << "after: " <<
+            alpha[nodes[i]->repr()] << endl;
+          fout << "===" << endl;
         }
       } catch (out_of_range &e) {
         cerr << "Out of range error in forward pass: " << e.what() << endl;
@@ -263,7 +267,9 @@ namespace TrellisAid {
       for (int i = nodes.size() - 2; i >= 0; --i) {
         double sum = 0;
         for (Edge *e : nodes[i]->child_edges) {
-          sum += beta[e->dest->repr()] * data->at(e->repr());
+          sum = Basic::AddLogs(sum,
+                               beta[e->dest->repr()] + data->at(e->repr()));
+//           sum += beta[e->dest->repr()] * data->at(e->repr());
         }
         if (EXTRA_PRINTING) {
           cout << Basic::Tab(1) << "Beta value for " << nodes[i]->repr() << ": "
@@ -286,7 +292,7 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word},
                              Notation::AND_DELIM);
-        (*data)[n_count_key] = 0;
+        (*data)[n_count_key] = -DBL_MAX; // log(0)
       }
 
       // Key: tag. Value: total fractional count associated with that tag.
@@ -312,13 +318,37 @@ namespace TrellisAid {
         // (*data)[count_key]. This compensates for adding too-early cXA's when
         // computing the total fractional counts for C(X,w_i).
         if (already_used[count_key]) {
-          total_fract_counts[e->dest->tag] -= (*data)[count_key];
+          total_fract_counts[e->dest->tag] =
+            Basic::SubtractLogs(total_fract_counts[e->dest->tag],
+                                (*data)[count_key]);
+//           total_fract_counts[e->dest->tag] -= (*data)[count_key];
         }
-        (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
-                               * beta[e->dest->repr()]) /
-                               alpha[nodes.back()->repr()];
+        fout << "back value: " << alpha[nodes.back()->repr()] << endl;
+        (*data)[count_key] = Basic::AddLogs((*data)[count_key],
+                                            alpha[e->src->repr()] +
+                                            data->at(e->repr()) +
+                                            beta[e->dest->repr()]) -
+                                            alpha[nodes.back()->repr()];
+        // Original:
+//         (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
+//                                * beta[e->dest->repr()]) /
+//                                alpha[nodes.back()->repr()];
+
+//         fout << "count key check: " << (*data)[count_key] << endl;
+//         if ((*data)[count_key] == 0)
+//           fout << "found zero (earlier) for count_key: " << count_key << endl;
         already_used[count_key] = true;
-        total_fract_counts[e->dest->tag] += (*data)[count_key];
+
+        if (total_fract_counts[e->dest->tag] == 0) {
+          // If this is the first time we encounter this key, the default is 0,
+          // which we actually want to be negative infinity. The sum is just the
+          // count_key log value itself.
+          total_fract_counts[e->dest->tag] = (*data)[count_key];
+        } else {
+          total_fract_counts[e->dest->tag] =
+            Basic::AddLogs(total_fract_counts[e->dest->tag], (*data)[count_key]);
+        }
+//         total_fract_counts[e->dest->tag] += (*data)[count_key];
       }
 
       // Update the unknown probabilities that we want to find. Use them in the
@@ -327,36 +357,33 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
 
-        (*data)[e->repr()] = (*data)[n_count_key] /
+        fout << "================\n";
+        fout << "data at n count key: " << (*data)[n_count_key] << "; " 
+          << "total fract count at tag: " << total_fract_counts.at(e->dest->tag)
+          << endl;
+        (*data)[e->repr()] = (*data)[n_count_key] -
           total_fract_counts.at(e->dest->tag);
+        // Original:
+//         (*data)[e->repr()] = (*data)[n_count_key] /
+//           total_fract_counts.at(e->dest->tag);
+
+//         if ((*data)[e->repr()] == 0)
+//           fout << "GOT ZERO!" << endl;
+        fout << "================\n";
       }
 
       // Update probability of observed data sequence. This should increase
       // with each iteration.
       (*data)[nObsSeq] = alpha[nodes.back()->repr()];
-      saved_obs_seq_probs->push_back((*data)[nObsSeq]);
+//       saved_obs_seq_probs->push_back((*data)[nObsSeq]);
 
-      // If we have a small data set, print neatly organized columns of output.
-      // Do not execute the following unless we are dealing with a very small
-      // tag set and vocabulary. For real (large) texts, the resulting output
-      // table would have too many columns.
-      if (very_small_data_set) {
-        OutputHelper::PrintDataRow(iter_count + 1, rowOfNots, *data);
-      } else {
-        if (PRINT_VITERBI_RESULTS_OFTEN) {
-          // Print viterbi.
-          cout << iter_count + 1 << ": \n";
-          if (saved_obs_seq_probs != NULL)
-            TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-                *saved_obs_seq_probs);
-          else {
-            TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-                {});
-          }
-          // Print P(obs).
-          cout << "P(observed sequence): " << alpha[nodes.back()->repr()] <<
-                                              endl << endl;
-        }
+      if (PRINT_VITERBI_RESULTS_OFTEN) {
+        // Print viterbi.
+        cout << iter_count + 1 << ": \n";
+        TrellisAid::Viterbi(*data, nodes, observed_data);
+        // Print P(obs).
+        cout << "P(observed sequence): " << alpha[nodes.back()->repr()] <<
+                                            endl << endl;
       }
     }
     if (EXTRA_PRINTING) {
@@ -372,13 +399,7 @@ namespace TrellisAid {
     if (PRINT_VITERBI_RESULTS_OFTEN) {
       cout << "Final results----" << endl;
     }
-    if (saved_obs_seq_probs != NULL)
-      TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-          *saved_obs_seq_probs);
-    else {
-      TrellisAid::Viterbi(*data, nodes, observed_data, very_small_data_set,
-          {});
-    }
+    TrellisAid::Viterbi(*data, nodes, observed_data);
   }
 } // end namespace TrellisAid
 

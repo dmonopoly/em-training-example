@@ -2,6 +2,7 @@
 #define TRELLIS_H_
 
 #include <cassert>
+#include <cfloat>
 #include <cstdlib>
 #include <map>
 #include <unordered_map>
@@ -31,28 +32,19 @@ namespace TrellisAid {
   void DestroyTrellis(vector<Node *> *nodes, vector<Edge *> *all_edges);
 
   // Traverses the trellis with the Viterbi algorithm to find the best matching
-  // tag sequence and prints the results. If very_small_data_set is true, we
-  // also update saved_obs_seq_probs with newer P(observation sequences).
+  // tag sequence and prints the results.
   void Viterbi(const map<Notation, double> &data, const vector<Node *> &nodes,
-               const vector<string> observed_data, bool very_small_data_set,
-               const vector<double> saved_obs_seq_probs);
+               const vector<string> observed_data);
   // Runs ForwardBackward 'num_iterations' times to determine best probabilities
   // and then calls Viterbi(). Updates data's count keys (e.g., C(X,A)) in the
   // process. If very_small_data_set is true, we also print organized data rows
-  // used all parameters that follow this bool. Otherwise we don't care for any
-  // of the params that follow this bool. 'select_edges' are the edges like
-  // P(A|X) that we want to update.
-  // TODO: remove Notation parameter since you can construct this from
-  // observed_data. This requires changing the organization of TwoTagExample.
+  // 'select_edges' are the edges like P(A|X) that we want to update. 
   void ForwardBackwardAndViterbi(const int num_iterations,
                                  const vector<Node *> &nodes,
                                  const vector<Edge *> &select_edges,
                                  const vector<Edge *> &all_edges,
                                  map<Notation, double> *data,
-                                 const vector<string> observed_data,
-                                 Notation nObsSeq,
-                                 vector<double> *saved_obs_seq_probs,
-                                 bool very_small_data_set);
+                                 const vector<string> observed_data);
 }
 
 #endif  // TRELLIS_H_

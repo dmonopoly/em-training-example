@@ -83,4 +83,67 @@ vector<string> Split(const string &s, char delim) {
     Split(s, delim, elems);
     return elems;
 }
+
+// Key idea for these two methods:
+// add(log x, log y)
+// if log x = -infinity, then output log y
+// if log y = -infinity, then output log x
+// if log x - log y > 16 (for floats, 32 double) then output log x
+//  (y is minor anyway)
+// if log x > log y then output log x + log(1 + exp(log y - log x))
+// if log y - log x > 16 (for floats, 32 double) then output log y
+//  (x is minor anyway)
+// if log y > log x then output log y + log(1 + exp(log x - log y))
+double TakeLogsAndSum(double x, double y) {
+  if (x < 0 || y < 0) {
+    cerr << "TakeLogsAndSum Domain Error: x or y was negative." << endl;
+    cerr << "x: " << x << ", y: " << y << endl;
+    return -1;
+  } else if (x == 0 && y == 0) {
+    cerr << "TakeLogsAndSum Error: Adding log(0) and log(0)." << endl;
+    return log(x) + log(y);
+  } 
+  if (x == 0 && y > 0) {
+    return log(y);
+  } else if (x > 0 && y == 0) {
+    return log(x);
+  }
+  double logx = log(x);
+  double logy = log(y);
+  return AddLogs(logx, logy);
+}
+double AddLogs(double logx, double logy) {
+  // add(log x, log y)
+  // if log x - log y > 16 (for floats, 32 double) then output log x
+  //  (y is minor anyway)
+  // if log x > log y then output log x + log(1 + exp(log y - log x))
+  // if log y - log x > 16 (for floats, 32 double) then output log y
+  //  (x is minor anyway)
+  // if log y > log x then output log y + log(1 + exp(log x - log y))
+  if (logx - logy > 32) {
+    return logx;
+  } else if (logy - logx > 32) {
+    return logy;
+  } else if (logx > logy) {
+    return logx + log(1 + exp(logy - logx));
+  } else {
+    return logy + log(1 + exp(logx - logy));
+  }
+}
+double SubtractLogs(double logx, double logy) {
+  // Idea is same as AddLogs, except use log(x) + log(1 - exp(logy - logx)).
+  // http://d.pr/i/rGSl
+  if (logx - logy > 32) {
+    return logx;
+  } else if (logy - logx > 32) {
+    cerr << "SubtractLogs Error (>32): tried computing log(x-y) for y>x.\n";
+    return logy;
+  } else if (logx > logy) {
+    return logx + log(1 - exp(logy - logx));
+  } else {
+    cerr << "SubtractLogs Error: tried computing log(x-y) for y>x.\n";
+    return logy + log(1 - exp(logx - logy));
+  }
+}
+
 }  // namespace Basic

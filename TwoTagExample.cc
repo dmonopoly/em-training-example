@@ -242,19 +242,17 @@ void RunForwardBackwardAndViterbi(vector<string> observed_data, vector<string> t
 
   clock_t t;
   t = clock();
-  bool very_small_data_set = true; // tmp
+//   bool very_small_data_set = true; // tmp
   if (DO_SHORT_SEQ) {
     if (EXTRA_PRINTING)
       cout << "Short sequence: " << endl;
     TrellisAid::ForwardBackwardAndViterbi(NUMBER_ITERATIONS, nodes,
-        edges_to_update, all_edges, &data, observed_data, pABA,
-        &saved_obs_seq_probs, very_small_data_set);
+        edges_to_update, all_edges, &data, observed_data);
   } else {
     if (EXTRA_PRINTING)
       cout << "Long sequence: " << endl;
     TrellisAid::ForwardBackwardAndViterbi(NUMBER_ITERATIONS, nodes,
-        edges_to_update, all_edges, &data, observed_data, pLong,
-        &saved_obs_seq_probs, very_small_data_set);
+        edges_to_update, all_edges, &data, observed_data);
   }
   t = clock() - t;
   cout << "\n--Timing Results--\n";
