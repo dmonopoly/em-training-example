@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <cassert>
+#include <cfloat>
+#include <cmath>
 #include <ctime>
 #include <iostream>
 #include <fstream>
@@ -15,7 +17,7 @@
 
 /*  SETTINGS  */
 #define DO_SHORT_SEQ false
-#define NUMBER_ITERATIONS 50
+#define NUMBER_ITERATIONS 3
 
 // Initial values.
 // #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
@@ -74,26 +76,49 @@ Notation cYB("C", {Y, B}, AND_DELIM);
 Notation pLong("P", {A,A,A,B,A,A,B,A,A}, SEQ_DELIM);
 
 void PrepareInitialData(map<Notation, double> *data) {
+//   // Given data.
+//   data->emplace(p1, 1);
+//   data->emplace(pX, .6);
+//   data->emplace(pY, .4);
+//   data->emplace(pXGivenX, .6);
+//   data->emplace(pYGivenX, .4);
+//   data->emplace(pXGivenY, .9);
+//   data->emplace(pYGivenY, .1);
+// 
+//   // Initial value for unknowns. We improve upon these.
+//   data->emplace(pAGivenX, INIT_VAL_pAGivenX);
+//   data->emplace(pBGivenX, 1 - INIT_VAL_pAGivenX);
+//   data->emplace(pAGivenY, INIT_VAL_pAGivenY);
+//   data->emplace(pBGivenY, 1 - INIT_VAL_pAGivenY);
+// 
+//   // Initial counts can be set to 0.
+//   data->emplace(cXA, 0);
+//   data->emplace(cYA, 0);
+//   data->emplace(cXB, 0);
+//   data->emplace(cYB, 0);
+
+  // TEMP: LOG VERSION OF ABOVE
   // Given data.
-  data->emplace(p1, 1);
-  data->emplace(pX, .6);
-  data->emplace(pY, .4);
-  data->emplace(pXGivenX, .6);
-  data->emplace(pYGivenX, .4);
-  data->emplace(pXGivenY, .9);
-  data->emplace(pYGivenY, .1);
+  data->emplace(p1, log(1));
+  data->emplace(pX, log(.6));
+  data->emplace(pY, log(.4));
+  data->emplace(pXGivenX, log(.6));
+  data->emplace(pYGivenX, log(.4));
+  data->emplace(pXGivenY, log(.9));
+  data->emplace(pYGivenY, log(.1));
 
   // Initial value for unknowns. We improve upon these.
-  data->emplace(pAGivenX, INIT_VAL_pAGivenX);
-  data->emplace(pBGivenX, 1 - INIT_VAL_pAGivenX);
-  data->emplace(pAGivenY, INIT_VAL_pAGivenY);
-  data->emplace(pBGivenY, 1 - INIT_VAL_pAGivenY);
+  data->emplace(pAGivenX, log(INIT_VAL_pAGivenX));
+  data->emplace(pBGivenX, log(1 - INIT_VAL_pAGivenX));
+  data->emplace(pAGivenY, log(INIT_VAL_pAGivenY));
+  data->emplace(pBGivenY, log(1 - INIT_VAL_pAGivenY));
 
   // Initial counts can be set to 0.
-  data->emplace(cXA, 0);
-  data->emplace(cYA, 0);
-  data->emplace(cXB, 0);
-  data->emplace(cYB, 0);
+  data->emplace(cXA, -DBL_MAX);
+  data->emplace(cYA, -DBL_MAX);
+  data->emplace(cXB, -DBL_MAX);
+  data->emplace(cYB, -DBL_MAX);
+
 }
 
 void ComputeDataWithBruteForce(map<Notation, double> *data, const Notation &n,

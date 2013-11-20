@@ -113,13 +113,13 @@ double TakeLogsAndSum(double x, double y) {
   return AddLogs(logx, logy);
 }
 double AddLogs(double logx, double logy) {
-  // add(log x, log y)
-  // if log x - log y > 16 (for floats, 32 double) then output log x
-  //  (y is minor anyway)
-  // if log x > log y then output log x + log(1 + exp(log y - log x))
-  // if log y - log x > 16 (for floats, 32 double) then output log y
-  //  (x is minor anyway)
-  // if log y > log x then output log y + log(1 + exp(log x - log y))
+//   // add(log x, log y)
+//   // if log x - log y > 16 (for floats, 32 double) then output log x
+//   //  (y is minor anyway)
+//   // if log x > log y then output log x + log(1 + exp(log y - log x))
+//   // if log y - log x > 16 (for floats, 32 double) then output log y
+//   //  (x is minor anyway)
+//   // if log y > log x then output log y + log(1 + exp(log x - log y))
   if (logx - logy > 32) {
     return logx;
   } else if (logy - logx > 32) {
@@ -127,8 +127,35 @@ double AddLogs(double logx, double logy) {
   } else if (logx > logy) {
     return logx + log(1 + exp(logy - logx));
   } else {
+//     cout << "Case 4" << endl;
+//     cout << "logy: " << logy << "; " << "logx: " << logx << endl;
+//     cout << "logx - logy: " << logx - logy << endl;
+//     cout << "exp(logx - logy): " << exp(logx - logy) << endl;
+//     cout << "log(1 + exp(logx - logy)): " << log(1 + exp(logx - logy)) << endl;
+//     cout << "logy + log(1 + exp(logx - logy)): " << logy + log(1 + exp(logx - logy)) << endl;
     return logy + log(1 + exp(logx - logy));
   }
+
+  // Online method:
+//   // 1. make x the max
+//   if (logy > logx) {
+//     double temp = logx;
+//     logx = logy;
+//     logy = temp;
+//   }
+//   // 2. now x is bigger
+//   if (logx == -DBL_MAX) {
+//     return logx;
+//   }
+//   // 3. how far "down" (think decibels) is logy from logx?
+//   //    if it's really small (20 orders of magnitude smaller), then ignore
+//   double negDiff = logy - logx;
+//   if (negDiff < -20) {
+//     return logx;
+//   }
+//   // 4. otherwise use some nice algebra to stay in the log domain
+//   //    (except for negDiff)
+//   return logx + log(1.0 + exp(negDiff));
 }
 double SubtractLogs(double logx, double logy) {
   // Idea is same as AddLogs, except use log(x) + log(1 - exp(logy - logx)).
@@ -140,6 +167,8 @@ double SubtractLogs(double logx, double logy) {
     return logy;
   } else if (logx > logy) {
     return logx + log(1 - exp(logy - logx));
+  } else if (logx == logy) {
+    return -DBL_MAX;
   } else {
     cerr << "SubtractLogs Error: tried computing log(x-y) for y>x.\n";
     return logy + log(1 - exp(logx - logy));

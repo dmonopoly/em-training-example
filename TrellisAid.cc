@@ -224,15 +224,18 @@ namespace TrellisAid {
       // Forward pass. Assumes start node is at i = 0.
       try {
         for (int i = 1; i < nodes.size(); ++i) {
-          double sum = 0; // TODO: is this right?
+          double sum = -DBL_MAX; // TODO: is this right?
           for (Edge *e : nodes[i]->parent_edges) {
             //tmp
-//             cout << e->repr() << endl;
+            fout << "sum before: " << sum << endl;
+            fout << "alpha, data:" << alpha[e->src->repr()] << ",  " <<
+              data->at(e->repr()) << endl;
+            // original:
+            // sum += alpha[e->src->repr()] * data->at(e->repr());
+            fout << "alpha + data: " << alpha[e->src->repr()] + data->at(e->repr()) << endl;
             sum = Basic::AddLogs(sum,
-                                 alpha[e->src->repr()] + data->at(e->repr()));
-
-            fout << "sum as it changes: alpha + data:" << alpha[e->src->repr()]
-              << " +  " << data->at(e->repr()) << " = "  << sum << endl;
+                alpha[e->src->repr()] + data->at(e->repr()));
+            fout << "AddLogs(sum, result above): " << sum;
             fout << Basic::Tab(1) << "edge rep: " << e->src->repr() <<
               ", e->repr: " << e->repr() << endl;
           }
@@ -246,10 +249,10 @@ namespace TrellisAid {
           if (nodes[i]->repr() == nodes.back()->repr()) {
             fout << "forward pass back: " << sum << endl;
           }
-          fout << "alpha value for " << nodes[i]->repr() << "beforehand: " <<
+          fout << "alpha value for " << nodes[i]->repr() << " beforehand: " <<
             alpha[nodes[i]->repr()] << endl;
           alpha[nodes[i]->repr()] = sum;
-          fout << "alpha value for " << nodes[i]->repr() << "after: " <<
+          fout << "alpha value for " << nodes[i]->repr() << " after: " <<
             alpha[nodes[i]->repr()] << endl;
           fout << "===" << endl;
         }
@@ -265,10 +268,11 @@ namespace TrellisAid {
       }
       // Backward pass. Assumes end node is at i = size - 1.
       for (int i = nodes.size() - 2; i >= 0; --i) {
-        double sum = 0;
+        double sum = -DBL_MAX;
         for (Edge *e : nodes[i]->child_edges) {
           sum = Basic::AddLogs(sum,
-                               beta[e->dest->repr()] + data->at(e->repr()));
+              beta[e->dest->repr()] + data->at(e->repr()));
+          // Original:
 //           sum += beta[e->dest->repr()] * data->at(e->repr());
         }
         if (EXTRA_PRINTING) {
