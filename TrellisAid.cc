@@ -331,8 +331,8 @@ namespace TrellisAid {
         (*data)[count_key] = Basic::AddLogs((*data)[count_key],
                                             alpha[e->src->repr()] +
                                             data->at(e->repr()) +
-                                            beta[e->dest->repr()]) -
-                                            alpha[nodes.back()->repr()];
+                                            beta[e->dest->repr()] -
+                                            alpha[nodes.back()->repr()]);
         // Original:
 //         (*data)[count_key] += (alpha[e->src->repr()] * data->at(e->repr())
 //                                * beta[e->dest->repr()]) /

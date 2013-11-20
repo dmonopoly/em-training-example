@@ -17,7 +17,7 @@
 
 /*  SETTINGS  */
 #define DO_SHORT_SEQ false
-#define NUMBER_ITERATIONS 3
+#define NUMBER_ITERATIONS 35
 
 // Initial values.
 // #define INIT_VAL_pAGivenX .7  // Best case for long seq: .7
