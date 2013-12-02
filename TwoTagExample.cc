@@ -14,7 +14,7 @@
 #include "TrellisAid.h"
 
 /*  SETTINGS  */
-#define DO_SHORT_SEQ false
+#define DO_SHORT_SEQ true
 #define NUMBER_ITERATIONS 50
 
 // Initial values.

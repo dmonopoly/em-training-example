@@ -119,7 +119,7 @@ namespace TrellisAid {
         try {
           double new_val = opt.at(current_node->repr()) * data.at(e->repr());
           // TODO: why opt at node right before end is the value 0? only happens
-          // with larger input size...
+          // with larger input size... underflow error.
           if (new_val > opt.at(next->repr())) {
             opt[next->repr()] = new_val;
             best_path[next->repr()] = current_node->repr();
@@ -214,8 +214,8 @@ namespace TrellisAid {
       // Prepare row of Notation strings for nice column-organized output.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word},
-            Notation::AND_DELIM);
+        Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                             {e->notation.first[0]});
         if (!already_used[n_count_key]) {
           rowOfNots.push_back(n_count_key);
           rowOfNots.push_back(e->notation);
@@ -284,8 +284,8 @@ namespace TrellisAid {
       // First reset the counts.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word},
-                             Notation::AND_DELIM);
+        Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                             {e->notation.first[0]});
         (*data)[n_count_key] = 0;
       }
 
@@ -296,9 +296,8 @@ namespace TrellisAid {
       // probabilities later.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation count_key("C", {e->dest->tag, e->dest->word},
-                             Notation::AND_DELIM);
-//         string count_key = n_count_key.repr();
+        Notation count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                           {e->notation.first[0]});
         if (EXTRA_PRINTING) {
           cout << Basic::Tab(1) << "Getting count key from edge " << e->repr()
               << ": " << count_key << endl;
@@ -325,8 +324,8 @@ namespace TrellisAid {
       // next iteration.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
-
+        Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                             {e->notation.first[0]});
         (*data)[e->repr()] = (*data)[n_count_key] /
           total_fract_counts.at(e->dest->tag);
       }
