@@ -276,10 +276,8 @@ namespace TrellisAid {
         cout << "Counting pass... " << endl;
       }
 
-      // Counting pass.  The count key can be determined by looking at any node
-      // this select edge is incident on. We take that node's 'tag' and 'word'
-      // fields. For count_keys, we follow the convention of C(tag, word) (e.g.,
-      // C(X,A)).
+      // Counting pass. For count_keys, we follow the convention of C(tag, word)
+      // (e.g., C(X,A)).
 
       // First reset the counts.
       for (int i = 0; i < select_edges.size(); ++i) {
