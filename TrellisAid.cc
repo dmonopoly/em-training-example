@@ -261,16 +261,14 @@ namespace TrellisAid {
         cout << "Counting pass... " << endl;
       }
 
-      // Counting pass.  The count key can be determined by looking at any node
-      // this select edge is incident on. We take that node's 'tag' and 'word'
-      // fields. For count_keys, we follow the convention of C(tag, word) (e.g.,
-      // C(X,A)).
+      // Counting pass. For count_keys, we follow the convention of C(tag, word)
+      // (e.g., C(X,A)).
 
       // First reset the counts.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word},
-                             Notation::AND_DELIM);
+        Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                             {e->notation.first[0]});
         (*data)[n_count_key] = -DBL_MAX; // log(0)
       }
 
@@ -281,8 +279,8 @@ namespace TrellisAid {
       // probabilities later.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation count_key("C", {e->dest->tag, e->dest->word},
-                             Notation::AND_DELIM);
+        Notation count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                             {e->notation.first[0]});
         if (EXTRA_PRINTING) {
           cout << Basic::Tab(1) << "Getting count key from edge " << e->repr()
               << ": " << count_key << endl;
@@ -323,8 +321,8 @@ namespace TrellisAid {
       // next iteration.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
-        Notation n_count_key("C", {e->dest->tag, e->dest->word}, Notation::AND_DELIM);
-
+        Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
+                             {e->notation.first[0]});
         (*data)[e->repr()] = (*data)[n_count_key] -
           total_fract_counts.at(e->dest->tag);
       }
