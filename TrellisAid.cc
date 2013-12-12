@@ -1,7 +1,7 @@
 #include "TrellisAid.h"
 #include "NLPHelper.h"
 
-#define PRINT_VITERBI_RESULTS_OFTEN true
+#define PRINT_VITERBI_RESULTS_OFTEN false
 #define EXTRA_PRINTING false
 
 namespace TrellisAid {
@@ -49,17 +49,19 @@ namespace TrellisAid {
           all_edges->push_back(e);
         } else {
           for (Node *p : prev_nodes) {
-            // P(t2|t1)
-            Notation notation_obj("P", {the_tag}, Notation::GIVEN_DELIM, {p->tag});
+            // E.g., P(t2|t1)
+            Notation notation_obj("P", {the_tag}, Notation::GIVEN_DELIM,
+                                  {p->tag});
             if (EXTRA_PRINTING)
               cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
             Edge *e = new Edge(notation_obj, p, n1);
+            select_edges->push_back(e); // NEW
             all_edges->push_back(e);
           }
         }
         future_prev_nodes.push_back(n2);
         Notation notation_obj("P", {the_word}, Notation::GIVEN_DELIM,
-            {the_tag});
+                              {the_tag});
         Edge *e = new Edge(notation_obj, n1, n2);
         select_edges->push_back(e);
         all_edges->push_back(e);
@@ -68,7 +70,7 @@ namespace TrellisAid {
       prev_nodes = future_prev_nodes;
     }
 
-    // To the end point. It is important that these have probability 1 for the
+    // To the end point.
     Node *end_node = new Node("END_NODE", topol_index);
     nodes->push_back(end_node);
     for (Node *p : prev_nodes) {
@@ -276,8 +278,10 @@ namespace TrellisAid {
         cout << "Counting pass... " << endl;
       }
 
-      // Counting pass. For count_keys, we follow the convention of C(tag, word)
-      // (e.g., C(X,A)).
+      // Counting pass. e->notation.first[0] gets the word if select edge
+      // represents a channel probability; if LM probability, then tag. This is
+      // because in BuildTrellis edges are constructed with a Notation object
+      // with this form: P(w|t) or P(t|t).
 
       // First reset the counts.
       for (int i = 0; i < select_edges.size(); ++i) {
@@ -288,6 +292,7 @@ namespace TrellisAid {
       }
 
       // Key: tag. Value: total fractional count associated with that tag.
+      // Tag is accessed via e->notation.second[0].
       unordered_map<string, double> total_fract_counts;
 
       // Iterate over select edges to update count_keys, used for updating
@@ -318,8 +323,8 @@ namespace TrellisAid {
         total_fract_counts[e->dest->tag] += (*data)[count_key];
       }
 
-      // Update the unknown probabilities that we want to find. Use them in the
-      // next iteration.
+      // Normalization step: Update the unknown probabilities that we want to
+      // find. Use them in the next iteration.
       for (int i = 0; i < select_edges.size(); ++i) {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
