@@ -2,7 +2,7 @@
 #include "NLPHelper.h"
 
 #define PRINT_VITERBI_RESULTS_OFTEN false
-#define EXTRA_PRINTING false
+#define EXTRA_PRINTING true
 
 namespace TrellisAid {
   void BuildTrellis(vector<Node *> *nodes, vector<Edge *> *select_edges,
@@ -55,7 +55,9 @@ namespace TrellisAid {
             if (EXTRA_PRINTING)
               cout << Basic::Tab(2) << "new edge: " << notation_obj << endl;
             Edge *e = new Edge(notation_obj, p, n1);
-            select_edges->push_back(e); // NEW
+            // Don't include LM edges because this will not work due to
+            // total_frac_counts below.
+//             select_edges->push_back(e); 
             all_edges->push_back(e);
           }
         }
@@ -120,8 +122,7 @@ namespace TrellisAid {
         Node *next = e->dest;
         try {
           double new_val = opt.at(current_node->repr()) * data.at(e->repr());
-          // TODO: why opt at node right before end is the value 0? only happens
-          // with larger input size... underflow error.
+          // This was where underflow error occurred.
           if (new_val > opt.at(next->repr())) {
             opt[next->repr()] = new_val;
             best_path[next->repr()] = current_node->repr();
@@ -206,7 +207,8 @@ namespace TrellisAid {
       cout << "Beginning Forward-Backward." << endl;
     // Value: true if already used. Main purpose is for checking while
     // accumulating fractional counts in counting pass, but also used in output
-    // setup.
+    // setup. WARNING: usage of this in total_fract_counts is premature
+    // optimization.
     map<Notation, bool> already_used;
 
     // Push back initial 0.
@@ -292,6 +294,9 @@ namespace TrellisAid {
       }
 
       // Key: tag. Value: total fractional count associated with that tag.
+      // Example: When normalizing probabilities - i.e., computing P(b|x) from
+      // C(x, b), we do C(x, b)/sum of all C(x, w) over all w (just a & b here).
+      // The denominator is the total fractional count for the tag x.
       // Tag is accessed via e->notation.second[0].
       unordered_map<string, double> total_fract_counts;
 
@@ -313,6 +318,9 @@ namespace TrellisAid {
         // values for that count_key from total_fract_counts before updating
         // (*data)[count_key]. This compensates for adding too-early cXA's when
         // computing the total fractional counts for C(X,w_i).
+        // Warning: Premature optimization. The clearer way is to compute the
+        // total fractional counts after this in a double loop. This method is
+        // good when we only update channel probabilities - no LM ones.
         if (already_used[count_key]) {
           total_fract_counts[e->dest->tag] -= (*data)[count_key];
         }
@@ -329,8 +337,20 @@ namespace TrellisAid {
         Edge *e = select_edges[i];
         Notation n_count_key("C", {e->notation.second[0]}, Notation::AND_DELIM,
                              {e->notation.first[0]});
-        (*data)[e->repr()] = (*data)[n_count_key] /
-          total_fract_counts.at(e->dest->tag);
+        if (EXTRA_PRINTING) {
+          double tmp = (*data)[n_count_key] /
+            total_fract_counts.at(e->dest->tag);
+          cout << Basic::Tab(1) << "Updating probability of " << e->repr() << 
+            " to " << tmp << endl;
+          cout << Basic::Tab(2) << "Calculation: (*data)[n_count_key] / "
+            << "total_fract_counts.at(e->dest->tag): "
+            << (*data)[n_count_key] << " / " <<
+                 total_fract_counts.at(e->dest->tag) << endl;
+          (*data)[e->repr()] = tmp;
+        } else {
+          (*data)[e->repr()] = (*data)[n_count_key] /
+            total_fract_counts.at(e->dest->tag);
+        }
       }
 
       // Update probability of observed data sequence. This should increase

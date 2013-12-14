@@ -70,6 +70,10 @@ Notation cXA("C", {X, A}, AND_DELIM);  // "count of x and a"
 Notation cXB("C", {X, B}, AND_DELIM);
 Notation cYA("C", {Y, A}, AND_DELIM);
 Notation cYB("C", {Y, B}, AND_DELIM);
+Notation cXX("C", {X, X}, AND_DELIM);
+Notation cXY("C", {X, Y}, AND_DELIM);
+Notation cYX("C", {Y, X}, AND_DELIM);
+Notation cYY("C", {Y, Y}, AND_DELIM);
 // Long seq type.
 Notation pLong("P", {A,A,A,B,A,A,B,A,A}, SEQ_DELIM);
 
@@ -94,6 +98,13 @@ void PrepareInitialData(map<Notation, double> *data) {
   data->emplace(cYA, 0);
   data->emplace(cXB, 0);
   data->emplace(cYB, 0);
+
+  // Also make sure LM counts are 0. Actually doesn't matter if select_edges
+  // does not include LM edges.
+//   data->emplace(cXX, 0);
+//   data->emplace(cXY, 0);
+//   data->emplace(cYX, 0);
+//   data->emplace(cYY, 0);
 }
 
 void ComputeDataWithBruteForce(map<Notation, double> *data, const Notation &n,
